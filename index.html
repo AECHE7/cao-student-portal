@@ -100,6 +100,9 @@ input[type=password]{ -webkit-text-security:disc; }
       <button onclick="refreshDashboard()" id="btn-refresh" title="Refresh" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition border border-slate-700">
         <i id="refresh-icon" class="ph-bold ph-arrows-clockwise text-base text-emerald-400"></i>
       </button>
+      <button onclick="showMyId()" title="My member card" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition border border-slate-700 flex items-center gap-1.5 text-xs font-bold">
+        <i class="ph-bold ph-identification-card text-base text-clsu-gold"></i><span class="hidden sm:inline">My ID</span>
+      </button>
       <button onclick="openChangePinModal()" title="Change PIN" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition border border-slate-700 flex items-center gap-1.5 text-xs font-bold">
         <i class="ph-bold ph-key text-base text-clsu-gold"></i><span class="hidden sm:inline">Change PIN</span>
       </button>
@@ -212,7 +215,56 @@ input[type=password]{ -webkit-text-security:disc; }
   </main>
 </div>
 
-<!-- sticker studio modal -->
+<!-- member ID card modal -->
+<div id="id-modal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 hidden items-center justify-center p-4 overflow-y-auto">
+  <div class="w-full max-w-xs my-auto">
+    <div class="flex items-center justify-between mb-3">
+      <h3 class="text-sm font-black text-white flex items-center gap-2"><i class="ph-bold ph-identification-card text-clsu-gold"></i> My member card</h3>
+      <button onclick="closeMyId()" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 flex items-center justify-center"><i class="ph-bold ph-x"></i></button>
+    </div>
+
+    <div id="id-card-mount" class="flex flex-col items-center">
+      <div class="w-16 h-6 rounded-t-lg" style="background:repeating-linear-gradient(45deg,#006633,#006633 12px,#00522a 12px,#00522a 24px)"></div>
+      <div class="w-6 h-6 bg-slate-800 rounded-full -mt-3 mb-[-12px] z-10 border-2 border-slate-600" style="box-shadow:inset 0 0 0 6px #0f172a"></div>
+      <div id="id-card" class="relative w-full rounded-3xl overflow-hidden shadow-2xl border-2 bg-slate-900">
+        <div id="id-accent" class="h-2 w-full"></div>
+        <div class="px-5 pt-4 pb-3 flex items-center justify-between border-b border-white/10">
+          <div class="flex items-center gap-2">
+            <div class="w-8 h-8 rounded-lg bg-clsu-green/30 border border-clsu-gold/30 flex items-center justify-center text-clsu-gold"><i class="ph-bold ph-star text-base"></i></div>
+            <div><p class="text-[9px] font-black text-clsu-gold uppercase tracking-widest leading-none">CLSU · CAO</p>
+            <p class="text-[8px] text-slate-400 uppercase tracking-wider mt-0.5">Performers' Hub · Member Pass</p></div>
+          </div>
+          <span id="id-rarity-tag" class="hidden text-[8px] font-black uppercase px-2 py-0.5 rounded border"></span>
+        </div>
+        <div class="flex flex-col items-center pt-6 pb-4 px-5">
+          <div id="id-avatar" class="w-28 h-28 rounded-2xl overflow-hidden border-4 flex items-center justify-center text-4xl font-black bg-slate-950 shadow-xl"></div>
+          <h1 id="id-name" class="text-xl font-black text-white mt-4 text-center leading-tight">—</h1>
+          <p id="id-section" class="text-xs font-bold text-clsu-gold mt-0.5">—</p>
+          <p id="id-num" class="text-[10px] font-mono text-slate-500 mt-0.5">ID: —</p>
+        </div>
+        <div class="mx-5 mb-4 bg-slate-950/60 rounded-2xl p-3 border border-white/10 flex items-center justify-between">
+          <div><p class="text-[8px] text-slate-400 font-bold uppercase tracking-widest">Rank</p><p id="id-rank" class="text-sm font-black text-white">—</p></div>
+          <div id="id-topbadge" class="hidden text-right"><p class="text-[8px] text-slate-400 font-bold uppercase tracking-widest">Top badge</p><p id="id-topbadge-title" class="text-xs font-bold text-slate-200 flex items-center gap-1 justify-end"></p></div>
+        </div>
+        <div class="mx-5 mb-5 grid grid-cols-3 gap-2 text-center">
+          <div class="bg-slate-950/60 rounded-xl py-2 border border-white/5"><p id="id-hours" class="text-sm font-black text-white">0</p><p class="text-[7px] text-slate-400 font-bold uppercase tracking-wider">Hours</p></div>
+          <div class="bg-slate-950/60 rounded-xl py-2 border border-white/5"><p id="id-xp" class="text-sm font-black text-white">0</p><p class="text-[7px] text-slate-400 font-bold uppercase tracking-wider">XP</p></div>
+          <div class="bg-slate-950/60 rounded-xl py-2 border border-white/5"><p id="id-streak" class="text-sm font-black text-white">0</p><p class="text-[7px] text-slate-400 font-bold uppercase tracking-wider">Streak</p></div>
+        </div>
+        <div class="bg-slate-950/80 px-5 py-2.5 text-center border-t border-white/10">
+          <p class="text-[8px] text-slate-500 font-semibold tracking-wide">CULTURAL AFFAIRS OFFICE · CLSU</p>
+        </div>
+      </div>
+    </div>
+
+    <button onclick="copyPublicLink(this)" class="w-full mt-4 bg-clsu-green hover:bg-green-800 text-white font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-2">
+      <i class="ph-bold ph-link"></i> Copy public share link
+    </button>
+    <p class="text-[9px] text-slate-500 text-center mt-2">The public link shows name, section, and rank only — no hours or XP.</p>
+  </div>
+</div>
+
+
 <div id="sticker-modal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 hidden items-center justify-center p-4 overflow-y-auto">
   <div class="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-sm shadow-2xl my-auto overflow-hidden">
     <div class="flex items-center justify-between px-5 py-3 border-b border-slate-800">
@@ -597,6 +649,61 @@ async function submitTask(taskId, btn){
   } catch(e){ btn.disabled = false; btn.innerHTML = '<i class="ph-bold ph-wifi-slash"></i> Network error'; }
 }
 
+/* ═══════════════════ MEMBER ID CARD (Phase 5) ═══════════════════ */
+const ID_CARD_PUBLIC_URL = "PASTE_YOUR_ID_CARD_PAGE_URL_HERE"; // e.g. https://aeche7.github.io/cao-id-card/
+const ID_RARITY = {
+  common:{ ring:'#b45309', label:'Common' }, rare:{ ring:'#94a3b8', label:'Rare' },
+  epic:{ ring:'#FFC000', label:'Epic' }, legendary:{ ring:'#fde047', label:'Legendary' },
+  performance:{ ring:'#f472b6', label:'Performance' }, special:{ ring:'#34d399', label:'Special' }
+};
+async function showMyId(){
+  const m = document.getElementById('id-modal');
+  m.classList.remove('hidden'); m.classList.add('flex');
+  try {
+    const res = await fetch(`${WEB_APP_URL}?requestType=memberCard&id=${encodeURIComponent(activeStudentId)}&token=${encodeURIComponent(sessionToken)}`);
+    const d = await res.json();
+    if (d.error){ closeMyId(); if (d.error==='SESSION_EXPIRED') forceLogout("Session expired — log in again."); return; }
+    renderIdCard(d);
+  } catch(e){}
+}
+function closeMyId(){
+  const m = document.getElementById('id-modal');
+  m.classList.add('hidden'); m.classList.remove('flex');
+}
+function renderIdCard(d){
+  const r = (d.topBadge && ID_RARITY[d.topBadge.rarity]) ? ID_RARITY[d.topBadge.rarity] : ID_RARITY.special;
+  document.getElementById('id-accent').style.background = `linear-gradient(90deg, ${r.ring}, ${r.ring}88)`;
+  document.getElementById('id-card').style.borderColor = r.ring + '66';
+  const av = document.getElementById('id-avatar');
+  av.style.borderColor = r.ring;
+  if (d.photo){
+    av.innerHTML = `<img src="${d.photo}" class="w-full h-full object-cover" onerror="this.parentNode.textContent='${d.initials}';this.parentNode.classList.add('text-clsu-gold')">`;
+  } else { av.textContent = d.initials; av.classList.add('text-clsu-gold'); }
+  document.getElementById('id-name').textContent = d.name;
+  document.getElementById('id-section').textContent = d.section;
+  document.getElementById('id-num').textContent = "ID: " + d.id;
+  document.getElementById('id-rank').textContent = `Lv ${d.rank.level} · ${d.rank.title}`;
+  if (d.topBadge){
+    document.getElementById('id-topbadge').classList.remove('hidden');
+    document.getElementById('id-topbadge-title').innerHTML = `<i class="ph-fill ${d.topBadge.icon}" style="color:${r.ring}"></i> ${d.topBadge.title}`;
+    const tag = document.getElementById('id-rarity-tag');
+    tag.textContent = r.label; tag.style.color = r.ring; tag.style.borderColor = r.ring+'66'; tag.classList.remove('hidden');
+  }
+  if (d.hours !== undefined){
+    document.getElementById('id-hours').textContent = d.hours;
+    document.getElementById('id-xp').textContent = d.xp;
+    document.getElementById('id-streak').textContent = (d.streak||0) + 'd';
+  }
+}
+async function copyPublicLink(btn){
+  const base = (ID_CARD_PUBLIC_URL && ID_CARD_PUBLIC_URL.indexOf('PASTE') === -1) ? ID_CARD_PUBLIC_URL : location.href.split('?')[0];
+  const link = `${base}?id=${encodeURIComponent(activeStudentId)}`;
+  try {
+    await navigator.clipboard.writeText(link);
+    btn.innerHTML = '<i class="ph-fill ph-check"></i> Link copied!';
+    setTimeout(()=>{ btn.innerHTML = '<i class="ph-bold ph-link"></i> Copy public share link'; }, 1800);
+  } catch(e){ prompt("Copy your public card link:", link); }
+}
 
 const SHAPES = {
   square:   { w:1080, h:1080 },
