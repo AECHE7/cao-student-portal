@@ -1,508 +1,499 @@
 <!DOCTYPE html>
 <html lang="en" class="h-full bg-slate-950">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CAO Performers' Hub</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        clsu: { green: '#006633', gold: '#FFC000' }
-                    }
-                }
-            }
-        }
-    </script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
-        body { font-family: 'Inter', sans-serif; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>CAO Performers' Hub</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/@phosphor-icons/web"></script>
+<script>
+tailwind.config = { theme: { extend: { colors: { clsu: { green:'#006633', gold:'#FFC000' } } } } };
+</script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
+body { font-family:'Inter',sans-serif; }
+.skeleton { position:relative; overflow:hidden; background:#1e293b; border-radius:.75rem; }
+.skeleton::after { content:''; position:absolute; inset:0;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.06),transparent);
+  animation:shimmer 1.4s infinite; }
+@keyframes shimmer { 100% { transform:translateX(100%); } }
+@keyframes rise { from { height:0; } }
+.bar-rise { animation:rise .8s cubic-bezier(.2,.8,.3,1); }
+@media (prefers-reduced-motion:reduce){ .skeleton::after,.bar-rise{ animation:none; } }
+input[type=password]{ -webkit-text-security:disc; }
+</style>
 </head>
-<body class="h-full text-slate-100 antialiased overflow-hidden flex flex-col font-sans selection:bg-clsu-green selection:text-white">
+<body class="h-full text-slate-100 antialiased overflow-hidden flex flex-col selection:bg-clsu-green selection:text-white">
 
-    <div id="auth-page" class="flex-1 flex flex-col items-center justify-center p-6 bg-gradient-to-br from-slate-950 via-slate-900 to-clsu-green/20 relative z-10">
-        <div class="w-full max-w-sm bg-slate-900/90 backdrop-blur-xl p-8 rounded-3xl border border-slate-700/60 shadow-2xl relative overflow-hidden">
-            <div class="absolute -top-10 -right-10 w-32 h-32 bg-clsu-green rounded-full blur-3xl opacity-30 pointer-events-none"></div>
-            
-            <div class="text-center mb-6 relative z-10">
-                <div class="w-16 h-16 bg-clsu-green text-clsu-gold rounded-2xl mx-auto flex items-center justify-center mb-3 shadow-lg shadow-clsu-green/30 border border-clsu-gold/20">
-                    <i class="ph-bold ph-star text-3xl"></i>
-                </div>
-                <h1 class="text-2xl font-black tracking-tight text-white">Performers' Hub</h1>
-                <p class="text-xs text-slate-400 mt-1 uppercase tracking-wider font-semibold">Cultural Affairs Office • CLSU</p>
-            </div>
+<!-- ═══ AUTH ═══ -->
+<div id="auth-page" class="flex-1 flex flex-col items-center justify-center p-6 bg-gradient-to-br from-slate-950 via-slate-900 to-clsu-green/20 relative z-10">
+  <div class="w-full max-w-sm bg-slate-900/90 backdrop-blur-xl p-8 rounded-3xl border border-slate-700/60 shadow-2xl relative overflow-hidden">
+    <div class="absolute -top-10 -right-10 w-32 h-32 bg-clsu-green rounded-full blur-3xl opacity-30 pointer-events-none"></div>
 
-            <!-- Auth Mode Switcher -->
-            <div class="flex bg-slate-950/80 p-1 rounded-2xl border border-slate-800 mb-6 relative z-10">
-                <button onclick="setAuthTab('login')" id="tab-login" class="flex-1 py-2 rounded-xl text-xs font-bold transition bg-clsu-green text-white shadow">Login</button>
-                <button onclick="setAuthTab('register')" id="tab-register" class="flex-1 py-2 rounded-xl text-xs font-bold transition text-slate-400 hover:text-white">Register</button>
-            </div>
+    <div class="text-center mb-6 relative z-10">
+      <div class="w-16 h-16 bg-clsu-green text-clsu-gold rounded-2xl mx-auto flex items-center justify-center mb-3 shadow-lg shadow-clsu-green/30 border border-clsu-gold/20">
+        <i class="ph-bold ph-star text-3xl"></i>
+      </div>
+      <h1 class="text-2xl font-black tracking-tight text-white">Performers' Hub</h1>
+      <p class="text-xs text-slate-400 mt-1 uppercase tracking-wider font-semibold">Cultural Affairs Office · CLSU</p>
+    </div>
 
-            <div id="auth-error" class="hidden mb-4 p-3 bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs rounded-xl text-center font-medium"></div>
-            <div id="auth-success" class="hidden mb-4 p-3 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs rounded-xl text-center font-medium"></div>
+    <div class="flex bg-slate-950/80 p-1 rounded-2xl border border-slate-800 mb-6 relative z-10">
+      <button onclick="setAuthTab('login')" id="tab-login" class="flex-1 py-2 rounded-xl text-xs font-bold transition bg-clsu-green text-white shadow">Log in</button>
+      <button onclick="setAuthTab('register')" id="tab-register" class="flex-1 py-2 rounded-xl text-xs font-bold transition text-slate-400 hover:text-white">Register</button>
+    </div>
 
-            <!-- Login Form -->
-            <div id="form-login" class="space-y-4 relative z-10">
-                <div>
-                    <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Student ID</label>
-                    <input type="text" id="login-id" placeholder="e.g. 24-2094" class="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-4 py-3 text-slate-200 font-mono focus:outline-none focus:border-clsu-gold transition text-sm">
-                </div>
-                <div>
-                    <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">4-Digit Security PIN</label>
-                    <input type="password" id="login-pin" placeholder="••••" maxlength="4" class="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-4 py-3 text-slate-200 font-mono tracking-[0.5em] focus:outline-none focus:border-clsu-gold transition text-center text-lg">
-                </div>
-                <button onclick="submitLogin()" id="btn-login" class="w-full bg-clsu-green hover:bg-green-800 text-white font-bold py-3 rounded-xl transition shadow-lg shadow-clsu-green/20 text-sm mt-2">Login to Portal</button>
-            </div>
+    <div id="auth-error" class="hidden mb-4 p-3 bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs rounded-xl text-center font-medium"></div>
+    <div id="auth-success" class="hidden mb-4 p-3 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs rounded-xl text-center font-medium"></div>
 
-            <!-- Register Form -->
-            <div id="form-register" class="space-y-4 relative z-10 hidden">
-                <div>
-                    <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Student ID</label>
-                    <input type="text" id="reg-id" placeholder="e.g. 24-2094" class="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-4 py-3 text-slate-200 font-mono focus:outline-none focus:border-clsu-gold transition text-sm">
-                </div>
-                <div>
-                    <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Institutional Email</label>
-                    <input type="email" id="reg-email" placeholder="student@clsu22.edu.ph" class="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:border-clsu-gold transition text-sm">
-                </div>
-                <div>
-                    <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Create 4-Digit Security PIN</label>
-                    <input type="password" id="reg-pin" placeholder="••••" maxlength="4" class="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-4 py-3 text-slate-200 font-mono tracking-[0.5em] focus:outline-none focus:border-clsu-gold transition text-center text-lg">
-                </div>
-                <button onclick="submitRegister()" id="btn-register" class="w-full bg-clsu-gold hover:bg-amber-400 text-slate-950 font-black py-3 rounded-xl transition shadow-lg shadow-clsu-gold/20 text-sm mt-2">Register PIN</button>
-            </div>
+    <div id="form-login" class="space-y-4 relative z-10">
+      <div>
+        <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Student ID</label>
+        <input type="text" id="login-id" placeholder="e.g. 24-2094" autocomplete="username"
+          class="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-4 py-3 text-slate-200 font-mono focus:outline-none focus:border-clsu-gold transition text-sm">
+      </div>
+      <div>
+        <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">4-digit security PIN</label>
+        <input type="password" id="login-pin" placeholder="••••" maxlength="4" inputmode="numeric" pattern="[0-9]*" autocomplete="current-password"
+          class="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-4 py-3 text-slate-200 font-mono tracking-[0.5em] focus:outline-none focus:border-clsu-gold transition text-center text-lg"
+          onkeydown="if(event.key==='Enter')submitLogin()">
+      </div>
+      <button onclick="submitLogin()" id="btn-login" class="w-full bg-clsu-green hover:bg-green-800 text-white font-bold py-3 rounded-xl transition shadow-lg shadow-clsu-green/20 text-sm mt-2">Log in to portal</button>
+      <p class="text-[10px] text-slate-500 text-center">Forgot your PIN? Ask a CAO officer to reset it.</p>
+    </div>
+
+    <div id="form-register" class="space-y-4 relative z-10 hidden">
+      <div>
+        <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Student ID</label>
+        <input type="text" id="reg-id" placeholder="e.g. 24-2094"
+          class="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-4 py-3 text-slate-200 font-mono focus:outline-none focus:border-clsu-gold transition text-sm">
+      </div>
+      <div>
+        <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Institutional email</label>
+        <input type="email" id="reg-email" placeholder="student@clsu2.edu.ph"
+          class="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:border-clsu-gold transition text-sm">
+      </div>
+      <div>
+        <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Create a 4-digit PIN</label>
+        <input type="password" id="reg-pin" placeholder="••••" maxlength="4" inputmode="numeric" pattern="[0-9]*"
+          class="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-4 py-3 text-slate-200 font-mono tracking-[0.5em] focus:outline-none focus:border-clsu-gold transition text-center text-lg">
+      </div>
+      <button onclick="submitRegister()" class="w-full bg-clsu-gold hover:bg-amber-400 text-slate-950 font-black py-3 rounded-xl transition shadow-lg shadow-clsu-gold/20 text-sm mt-2">Register PIN</button>
+      <p class="text-[10px] text-slate-500 text-center">One PIN per Student ID. Already registered? Use Log in.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ DASHBOARD ═══ -->
+<div id="dashboard-page" class="hidden flex-1 flex-col h-full bg-slate-950 overflow-y-auto">
+  <header class="bg-slate-900/90 border-b border-slate-800/80 px-6 py-4 flex items-center justify-between sticky top-0 z-20 backdrop-blur-md">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-clsu-green/20 border border-clsu-green/40 flex items-center justify-center text-clsu-gold">
+        <i class="ph-bold ph-shield-check text-xl"></i>
+      </div>
+      <div>
+        <h2 class="text-base font-black text-white leading-tight">Performers' Hub</h2>
+        <p id="dash-group" class="text-xs text-clsu-gold font-semibold">—</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-2">
+      <button onclick="refreshDashboard()" id="btn-refresh" title="Refresh" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition border border-slate-700">
+        <i id="refresh-icon" class="ph-bold ph-arrows-clockwise text-base text-emerald-400"></i>
+      </button>
+      <button onclick="openChangePinModal()" title="Change PIN" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition border border-slate-700 flex items-center gap-1.5 text-xs font-bold">
+        <i class="ph-bold ph-key text-base text-clsu-gold"></i><span class="hidden sm:inline">Change PIN</span>
+      </button>
+      <button onclick="logout()" title="Log out" class="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-slate-400 hover:text-rose-400 transition border border-slate-700">
+        <i class="ph-bold ph-sign-out text-lg"></i>
+      </button>
+    </div>
+  </header>
+
+  <main class="p-4 sm:p-6 space-y-6 max-w-xl mx-auto w-full pb-20">
+
+    <!-- skeleton (shown while loading) -->
+    <div id="skeleton" class="space-y-6 hidden">
+      <div class="skeleton h-44 rounded-3xl"></div>
+      <div class="grid grid-cols-3 gap-4">
+        <div class="skeleton h-24"></div><div class="skeleton h-24"></div><div class="skeleton h-24"></div>
+      </div>
+      <div class="skeleton h-32 rounded-3xl"></div>
+      <div class="grid grid-cols-2 gap-3">
+        <div class="skeleton h-20"></div><div class="skeleton h-20"></div>
+        <div class="skeleton h-20"></div><div class="skeleton h-20"></div>
+      </div>
+    </div>
+
+    <div id="dash-content" class="space-y-6 hidden">
+
+      <!-- level banner -->
+      <div class="bg-gradient-to-br from-clsu-green via-green-900 to-slate-900 rounded-3xl p-6 relative overflow-hidden shadow-2xl border border-clsu-green/30">
+        <i class="ph-duotone ph-sparkle absolute -top-6 -right-6 text-9xl text-white/10 pointer-events-none"></i>
+        <div class="flex items-start justify-between relative z-10">
+          <div>
+            <h1 id="dash-name" class="text-2xl font-black text-white leading-tight">—</h1>
+            <p id="dash-id" class="text-green-300 font-mono text-xs mb-1">ID: ----</p>
+          </div>
+          <div id="streak-pill" class="hidden items-center gap-1.5 bg-slate-950/70 border border-orange-400/30 px-3 py-1.5 rounded-full">
+            <i class="ph-fill ph-fire text-orange-400"></i>
+            <span class="text-xs font-black text-orange-300"><span id="dash-streak">0</span>-day streak</span>
+          </div>
         </div>
-    </div>
 
-    <div id="dashboard-page" class="hidden flex-1 flex-col h-full bg-slate-950 overflow-y-auto">
-        <header class="bg-slate-900/90 border-b border-slate-800/80 px-6 py-4 flex items-center justify-between sticky top-0 z-20 backdrop-blur-md">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-clsu-green/20 border border-clsu-green/40 flex items-center justify-center text-clsu-gold">
-                    <i class="ph-bold ph-shield-check text-xl"></i>
-                </div>
-                <div>
-                    <h2 class="text-base font-black text-white leading-tight">Performers' Hub</h2>
-                    <p id="dash-group" class="text-xs text-clsu-gold font-semibold">Umbrella Group</p>
-                </div>
-            </div>
-            
-            <div class="flex items-center gap-2">
-                <button onclick="openChangePinModal()" title="Change Security PIN" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition border border-slate-700 flex items-center gap-1.5 text-xs font-bold">
-                    <i class="ph-bold ph-key text-base text-clsu-gold"></i>
-                    <span class="hidden sm:inline">Change PIN</span>
-                </button>
-                <button onclick="logout()" title="Logout" class="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-slate-400 hover:text-rose-400 transition border border-slate-700">
-                    <i class="ph-bold ph-sign-out text-lg"></i>
-                </button>
-            </div>
-        </header>
-
-        <main class="p-4 sm:p-6 space-y-6 max-w-xl mx-auto w-full pb-20">
-            <!-- Student Level Banner -->
-            <div class="bg-gradient-to-br from-clsu-green via-green-900 to-slate-900 rounded-3xl p-6 relative overflow-hidden shadow-2xl border border-clsu-green/30">
-                <i class="ph-duotone ph-sparkle absolute -top-6 -right-6 text-9xl text-white/10 pointer-events-none"></i>
-                
-                <h1 id="dash-name" class="text-2xl font-black text-white relative z-10 leading-tight">Student Name</h1>
-                <p id="dash-id" class="text-green-300 font-mono text-xs relative z-10 mb-6">ID: ----</p>
-                
-                <div class="relative z-10 bg-slate-950/60 rounded-2xl p-4 backdrop-blur-md border border-white/10">
-                    <div class="flex justify-between items-end mb-2">
-                        <div>
-                            <p class="text-[10px] text-green-300 font-bold uppercase tracking-wider">Performer Rank</p>
-                            <p id="dash-level" class="text-base font-black text-clsu-gold">Level 1: Novice Artist</p>
-                        </div>
-                        <p class="text-sm font-black text-white"><span id="dash-xp">0</span> <span class="text-green-400 text-xs font-normal">XP</span></p>
-                    </div>
-                    <div class="w-full bg-slate-900/80 rounded-full h-3 mb-1 overflow-hidden border border-white/10">
-                        <div id="dash-progress" class="bg-gradient-to-r from-clsu-gold to-amber-300 h-3 rounded-full transition-all duration-1000 w-0"></div>
-                    </div>
-                    <p class="text-[10px] text-right text-slate-400">Next rank tier at <span id="dash-xp-next" class="text-slate-200 font-bold">200</span> XP</p>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-4">
-                <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 flex flex-col items-center justify-center text-center">
-                    <i class="ph-duotone ph-clock text-3xl text-sky-400 mb-1"></i>
-                    <p id="dash-hours" class="text-2xl font-black text-white">0.00</p>
-                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Rehearsal Hours</p>
-                </div>
-                <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 flex flex-col items-center justify-center text-center">
-                    <i class="ph-duotone ph-trophy text-3xl text-clsu-gold mb-1"></i>
-                    <p id="dash-unlocked-count" class="text-2xl font-black text-white">0 / 0</p>
-                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Badges Unlocked</p>
-                </div>
-            </div>
-
+        <div class="relative z-10 bg-slate-950/60 rounded-2xl p-4 backdrop-blur-md border border-white/10 mt-4">
+          <div class="flex justify-between items-end mb-2">
             <div>
-                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 px-1 flex items-center gap-2">
-                    <i class="ph-bold ph-medal text-clsu-gold"></i> Achievements Matrix
-                </h3>
-                <div class="grid grid-cols-2 gap-3" id="badges-container"></div>
+              <p class="text-[10px] text-green-300 font-bold uppercase tracking-wider">Performer rank</p>
+              <p id="dash-level" class="text-base font-black text-clsu-gold">—</p>
             </div>
-
-            <div>
-                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 px-1 flex items-center gap-2">
-                    <i class="ph-bold ph-list-dashes text-sky-400"></i> Recent Rehearsal Logs
-                </h3>
-                <div class="bg-slate-900/80 border border-slate-800/80 rounded-2xl overflow-hidden divide-y divide-slate-800/60" id="recent-logs-container"></div>
-            </div>
-        </main>
-    </div>
-
-    <div id="pin-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 hidden items-center justify-center p-4">
-        <div class="bg-slate-900 border border-slate-700 p-6 rounded-3xl w-full max-w-sm space-y-4 shadow-2xl relative">
-            <h3 class="text-base font-black text-white flex items-center gap-2">
-                <i class="ph-bold ph-key text-clsu-gold"></i> Change Security PIN
-            </h3>
-            
-            <div id="modal-error" class="hidden p-3 bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs rounded-xl text-center font-medium"></div>
-            <div id="modal-success" class="hidden p-3 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs rounded-xl text-center font-medium"></div>
-
-            <div class="space-y-3">
-                <div>
-                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Current PIN</label>
-                    <input type="password" id="pin-current" placeholder="••••" maxlength="4" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-slate-200 font-mono tracking-[0.5em] focus:outline-none focus:border-clsu-gold text-center text-base">
-                </div>
-                <div>
-                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">New 4-Digit PIN</label>
-                    <input type="password" id="pin-new" placeholder="••••" maxlength="4" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-slate-200 font-mono tracking-[0.5em] focus:outline-none focus:border-clsu-gold text-center text-base">
-                </div>
-                <div>
-                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Confirm New PIN</label>
-                    <input type="password" id="pin-confirm" placeholder="••••" maxlength="4" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-slate-200 font-mono tracking-[0.5em] focus:outline-none focus:border-clsu-gold text-center text-base">
-                </div>
-            </div>
-
-            <div class="flex gap-2 pt-2">
-                <button onclick="submitChangePin()" class="flex-1 bg-clsu-green hover:bg-green-800 text-white font-bold py-2.5 rounded-xl text-xs transition">Update PIN</button>
-                <button onclick="closeChangePinModal()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2.5 rounded-xl text-xs transition">Cancel</button>
-            </div>
+            <p class="text-sm font-black text-white"><span id="dash-xp">0</span> <span class="text-green-400 text-xs font-normal">XP</span></p>
+          </div>
+          <div class="w-full bg-slate-900/80 rounded-full h-3 mb-1 overflow-hidden border border-white/10">
+            <div id="dash-progress" class="bg-gradient-to-r from-clsu-gold to-amber-300 h-3 rounded-full transition-all duration-1000 w-0"></div>
+          </div>
+          <p class="text-[10px] text-right text-slate-400">Next rank at <span id="dash-xp-next" class="text-slate-200 font-bold">200</span> XP · <span id="dash-xp-left" class="text-clsu-gold font-bold"></span> to go</p>
         </div>
+      </div>
+
+      <!-- stat trio -->
+      <div class="grid grid-cols-3 gap-3">
+        <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 flex flex-col items-center text-center">
+          <i class="ph-duotone ph-clock text-2xl text-sky-400 mb-1"></i>
+          <p id="dash-hours" class="text-xl font-black text-white">0.00</p>
+          <p class="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Rehearsal hrs</p>
+        </div>
+        <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 flex flex-col items-center text-center">
+          <i class="ph-duotone ph-trophy text-2xl text-clsu-gold mb-1"></i>
+          <p id="dash-unlocked-count" class="text-xl font-black text-white">0/0</p>
+          <p class="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Badges</p>
+        </div>
+        <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 flex flex-col items-center text-center">
+          <i class="ph-duotone ph-fire text-2xl text-orange-400 mb-1"></i>
+          <p id="dash-streak-2" class="text-xl font-black text-white">0</p>
+          <p class="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Day streak</p>
+        </div>
+      </div>
+
+      <!-- weekly chart -->
+      <div class="bg-slate-900/80 border border-slate-800 rounded-3xl p-5">
+        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+          <i class="ph-bold ph-chart-bar text-emerald-400"></i> This week's rehearsal hours
+        </h3>
+        <div id="week-chart" class="flex items-end justify-between gap-2 h-24"></div>
+      </div>
+
+      <!-- achievements -->
+      <div>
+        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 px-1 flex items-center gap-2">
+          <i class="ph-bold ph-medal text-clsu-gold"></i> Achievements
+        </h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" id="badges-container"></div>
+      </div>
+
+      <!-- session logs -->
+      <div>
+        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 px-1 flex items-center justify-between">
+          <span class="flex items-center gap-2"><i class="ph-bold ph-list-dashes text-sky-400"></i> Recent sessions</span>
+          <span id="synced-at" class="text-[10px] text-slate-500 font-mono normal-case"></span>
+        </h3>
+        <div class="bg-slate-900/80 border border-slate-800/80 rounded-2xl overflow-hidden divide-y divide-slate-800/60" id="sessions-container"></div>
+      </div>
     </div>
+  </main>
+</div>
 
-    <div id="loading-overlay" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 hidden items-center justify-center flex-col">
-        <div class="w-12 h-12 border-4 border-slate-800 border-t-clsu-gold rounded-full animate-spin mb-4"></div>
-        <p id="loading-text" class="text-slate-300 text-xs font-semibold animate-pulse tracking-wide">Connecting to Backend...</p>
+<!-- change PIN modal -->
+<div id="pin-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 hidden items-center justify-center p-4">
+  <div class="bg-slate-900 border border-slate-700 p-6 rounded-3xl w-full max-w-sm space-y-4 shadow-2xl">
+    <h3 class="text-base font-black text-white flex items-center gap-2">
+      <i class="ph-bold ph-key text-clsu-gold"></i> Change security PIN
+    </h3>
+    <div id="modal-error" class="hidden p-3 bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs rounded-xl text-center font-medium"></div>
+    <div id="modal-success" class="hidden p-3 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs rounded-xl text-center font-medium"></div>
+    <div class="space-y-3">
+      <div>
+        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Current PIN</label>
+        <input type="password" id="pin-current" placeholder="••••" maxlength="4" inputmode="numeric"
+          class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-slate-200 font-mono tracking-[0.5em] focus:outline-none focus:border-clsu-gold text-center text-base">
+      </div>
+      <div>
+        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">New 4-digit PIN</label>
+        <input type="password" id="pin-new" placeholder="••••" maxlength="4" inputmode="numeric"
+          class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-slate-200 font-mono tracking-[0.5em] focus:outline-none focus:border-clsu-gold text-center text-base">
+      </div>
+      <div>
+        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Confirm new PIN</label>
+        <input type="password" id="pin-confirm" placeholder="••••" maxlength="4" inputmode="numeric"
+          class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-slate-200 font-mono tracking-[0.5em] focus:outline-none focus:border-clsu-gold text-center text-base">
+      </div>
     </div>
+    <div class="flex gap-2 pt-2">
+      <button onclick="submitChangePin()" class="flex-1 bg-clsu-green hover:bg-green-800 text-white font-bold py-2.5 rounded-xl text-xs transition">Update PIN</button>
+      <button onclick="closeChangePinModal()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2.5 rounded-xl text-xs transition">Cancel</button>
+    </div>
+  </div>
+</div>
 
-    <script>
-        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxRGyI9NNg0B-r5qAfeArlCr6rejnFwwgUO133XUa3k3wKYnDTZ6YmGSqDq-i9tVPGo/exec";
-        let activeStudentId = null;
+<script>
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxRGyI9NNg0B-r5qAfeArlCr6rejnFwwgUO133XUa3k3wKYnDTZ6YmGSqDq-i9tVPGo/exec";
+let activeStudentId = null, sessionToken = null;
 
-        window.onload = () => {
-            const savedId = localStorage.getItem('cao_student_id');
-            if (savedId) {
-                loadDashboard(savedId);
-            }
-        };
+window.onload = () => {
+  const savedId = localStorage.getItem('cao_student_id');
+  const savedToken = localStorage.getItem('cao_token');
+  if (savedId && savedToken){ activeStudentId = savedId; sessionToken = savedToken; loadDashboard(); }
+};
 
-        function showLoading(text) {
-            document.getElementById('loading-text').innerText = text;
-            document.getElementById('loading-overlay').classList.remove('hidden');
-            document.getElementById('loading-overlay').classList.add('flex');
-        }
+/* ── auth UI ── */
+function setAuthTab(tab){
+  hideAuthAlerts();
+  const isLogin = tab === 'login';
+  document.getElementById('form-login').classList.toggle('hidden', !isLogin);
+  document.getElementById('form-register').classList.toggle('hidden', isLogin);
+  document.getElementById('tab-login').className = isLogin
+    ? "flex-1 py-2 rounded-xl text-xs font-bold transition bg-clsu-green text-white shadow"
+    : "flex-1 py-2 rounded-xl text-xs font-bold transition text-slate-400 hover:text-white";
+  document.getElementById('tab-register').className = !isLogin
+    ? "flex-1 py-2 rounded-xl text-xs font-bold transition bg-clsu-gold text-slate-950 shadow font-black"
+    : "flex-1 py-2 rounded-xl text-xs font-bold transition text-slate-400 hover:text-white";
+}
+function showAuthError(m){ const d=document.getElementById('auth-error'); d.innerText=m; d.classList.remove('hidden'); }
+function showAuthSuccess(m){ const d=document.getElementById('auth-success'); d.innerText=m; d.classList.remove('hidden'); }
+function hideAuthAlerts(){ document.getElementById('auth-error').classList.add('hidden'); document.getElementById('auth-success').classList.add('hidden'); }
+function setBtnBusy(id, busy, label){
+  const b = document.getElementById(id);
+  b.disabled = busy;
+  b.innerHTML = busy ? '<i class="ph-bold ph-circle-notch animate-spin"></i> ' + label : label;
+  b.classList.toggle('opacity-60', busy);
+}
 
-        function hideLoading() {
-            document.getElementById('loading-overlay').classList.add('hidden');
-            document.getElementById('loading-overlay').classList.remove('flex');
-        }
+/* ── login / register ── */
+async function submitLogin(){
+  hideAuthAlerts();
+  const id = document.getElementById('login-id').value.trim();
+  const pin = document.getElementById('login-pin').value.trim();
+  if (!id || !/^\d{4}$/.test(pin)){ showAuthError("Enter your Student ID and 4-digit PIN."); return; }
+  setBtnBusy('btn-login', true, 'Logging in…');
+  try {
+    const res = await fetch(WEB_APP_URL, { method:'POST', body: JSON.stringify({ action:'login', id, pin }) });
+    const r = await res.json();
+    if (r.success){
+      activeStudentId = id; sessionToken = r.token;
+      localStorage.setItem('cao_student_id', id);
+      localStorage.setItem('cao_token', r.token);
+      loadDashboard();
+    } else showAuthError(r.message || "Login failed.");
+  } catch(e){ showAuthError("Can't reach the server. Check your connection."); }
+  setBtnBusy('btn-login', false, 'Log in to portal');
+}
 
-        function setAuthTab(tab) {
-            hideAuthAlerts();
-            const isLogin = tab === 'login';
-            
-            document.getElementById('form-login').classList.toggle('hidden', !isLogin);
-            document.getElementById('form-register').classList.toggle('hidden', isLogin);
-            
-            document.getElementById('tab-login').className = isLogin 
-                ? "flex-1 py-2 rounded-xl text-xs font-bold transition bg-clsu-green text-white shadow"
-                : "flex-1 py-2 rounded-xl text-xs font-bold transition text-slate-400 hover:text-white";
-                
-            document.getElementById('tab-register').className = !isLogin 
-                ? "flex-1 py-2 rounded-xl text-xs font-bold transition bg-clsu-gold text-slate-950 shadow font-black"
-                : "flex-1 py-2 rounded-xl text-xs font-bold transition text-slate-400 hover:text-white";
-        }
+async function submitRegister(){
+  hideAuthAlerts();
+  const id = document.getElementById('reg-id').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const pin = document.getElementById('reg-pin').value.trim();
+  if (!id || !email || !/^\d{4}$/.test(pin)){ showAuthError("Fill in your ID, email, and a 4-digit PIN."); return; }
+  try {
+    const res = await fetch(WEB_APP_URL, { method:'POST', body: JSON.stringify({ action:'register', id, email, pin }) });
+    const r = await res.json();
+    if (r.success){
+      showAuthSuccess("PIN registered! Taking you to Log in…");
+      setTimeout(()=>{ document.getElementById('login-id').value = id; setAuthTab('login'); document.getElementById('login-pin').focus(); }, 1200);
+    } else showAuthError(r.message || "Registration failed.");
+  } catch(e){ showAuthError("Can't reach the server. Check your connection."); }
+}
 
-        function showAuthError(msg) {
-            const errDiv = document.getElementById('auth-error');
-            errDiv.innerText = msg;
-            errDiv.classList.remove('hidden');
-        }
+/* ── dashboard ── */
+function showPage(dash){
+  document.getElementById('auth-page').classList.toggle('hidden', dash);
+  document.getElementById('dashboard-page').classList.toggle('hidden', !dash);
+  document.getElementById('dashboard-page').classList.toggle('flex', dash);
+}
 
-        function showAuthSuccess(msg) {
-            const successDiv = document.getElementById('auth-success');
-            successDiv.innerText = msg;
-            successDiv.classList.remove('hidden');
-        }
+async function loadDashboard(){
+  showPage(true);
+  document.getElementById('skeleton').classList.remove('hidden');
+  document.getElementById('dash-content').classList.add('hidden');
+  try {
+    const res = await fetch(`${WEB_APP_URL}?requestType=dashboard&id=${encodeURIComponent(activeStudentId)}&token=${encodeURIComponent(sessionToken)}`);
+    const data = await res.json();
+    if (data.error === "SESSION_EXPIRED"){ forceLogout("Your session expired — please log in again."); return; }
+    if (data.error){ forceLogout(data.error); return; }
+    renderDashboard(data);
+  } catch(e){
+    document.getElementById('skeleton').classList.add('hidden');
+    forceLogout("Couldn't load your dashboard. Check your connection and log in again.");
+  }
+}
+function refreshDashboard(){
+  document.getElementById('refresh-icon').classList.add('animate-spin');
+  loadDashboard().finally?.(()=>{});
+  setTimeout(()=>document.getElementById('refresh-icon').classList.remove('animate-spin'), 1200);
+}
 
-        function hideAuthAlerts() {
-            document.getElementById('auth-error').classList.add('hidden');
-            document.getElementById('auth-success').classList.add('hidden');
-        }
+function renderDashboard(data){
+  document.getElementById('dash-name').innerText = data.name;
+  document.getElementById('dash-id').innerText = "ID: " + data.id;
+  document.getElementById('dash-group').innerText = data.group;
 
-        async function submitLogin() {
-            hideAuthAlerts();
-            const id = document.getElementById('login-id').value.trim();
-            const pin = document.getElementById('login-pin').value.trim();
-            
-            if (!id || !pin || pin.length < 4) {
-                showAuthError("Enter a valid Student ID and 4-digit PIN.");
-                return;
-            }
+  const s = data.stats;
+  document.getElementById('dash-hours').innerText = s.hours;
+  document.getElementById('dash-xp').innerText = s.xp;
+  document.getElementById('dash-xp-next').innerText = s.xpNextLevel;
+  document.getElementById('dash-xp-left').innerText = Math.max(0, s.xpNextLevel - s.xp) + " XP";
+  document.getElementById('dash-streak').innerText = s.streak;
+  document.getElementById('dash-streak-2').innerText = s.streak;
+  const pill = document.getElementById('streak-pill');
+  pill.classList.toggle('hidden', !s.streak);
+  pill.classList.toggle('flex', !!s.streak);
 
-            showLoading("Authenticating...");
-            
-            try {
-                const response = await fetch(WEB_APP_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: 'login', id, pin })
-                });
-                
-                const resData = await response.json();
+  const titles = ["Novice Artist","Apprentice Performer","Dedicated Member","Section Virtuoso","CAO Legend"];
+  document.getElementById('dash-level').innerText = `Level ${s.level}: ${titles[Math.min(s.level-1,4)]}`;
+  setTimeout(()=>{ document.getElementById('dash-progress').style.width = s.xpProgress + "%"; }, 80);
 
-                if (resData.success) {
-                    loadDashboard(id);
-                } else {
-                    hideLoading();
-                    showAuthError(resData.message || "Authentication failed.");
-                }
-            } catch (err) {
-                hideLoading();
-                showAuthError("Network Error. Please try again.");
-            }
-        }
+  renderWeek(data.week || []);
+  renderBadges(data.achievements || []);
+  renderSessions(data.sessions || []);
+  document.getElementById('synced-at').innerText = data.syncedAt ? "synced " + data.syncedAt : "";
 
-        async function submitRegister() {
-            hideAuthAlerts();
-            const id = document.getElementById('reg-id').value.trim();
-            const email = document.getElementById('reg-email').value.trim();
-            const pin = document.getElementById('reg-pin').value.trim();
-            
-            if (!id || !pin || pin.length < 4 || !email) {
-                showAuthError("Please fill in Student ID, Email, and 4-digit PIN.");
-                return;
-            }
+  document.getElementById('skeleton').classList.add('hidden');
+  document.getElementById('dash-content').classList.remove('hidden');
+}
 
-            showLoading("Registering PIN...");
-            
-            try {
-                const response = await fetch(WEB_APP_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: 'register', id, email, pin })
-                });
-                
-                const resData = await response.json();
+function renderWeek(week){
+  const c = document.getElementById('week-chart');
+  c.innerHTML = '';
+  const max = Math.max(1, ...week.map(d=>d.hours));
+  week.forEach(d => {
+    const pct = Math.round((d.hours / max) * 100);
+    const active = d.hours > 0;
+    c.innerHTML += `
+      <div class="flex flex-col items-center gap-1.5 flex-1 h-full justify-end">
+        ${active ? `<span class="text-[9px] font-black text-emerald-400">${d.hours}</span>` : ''}
+        <div class="bar-rise w-full max-w-[26px] rounded-t-lg ${active?'bg-gradient-to-t from-clsu-green to-emerald-400':'bg-slate-800'}"
+             style="height:${active?Math.max(pct,8):6}%"></div>
+        <span class="text-[9px] font-bold ${active?'text-slate-300':'text-slate-600'}">${d.label}</span>
+      </div>`;
+  });
+}
 
-                if (resData.success) {
-                    hideLoading();
-                    showAuthSuccess("PIN registered! Switching to Login...");
-                    setTimeout(() => {
-                        document.getElementById('login-id').value = id;
-                        document.getElementById('login-pin').value = pin;
-                        setAuthTab('login');
-                    }, 1500);
-                } else {
-                    hideLoading();
-                    showAuthError(resData.message || "Registration failed.");
-                }
-            } catch (err) {
-                hideLoading();
-                showAuthError("Network Error. Please try again.");
-            }
-        }
+function renderBadges(achievements){
+  const c = document.getElementById('badges-container');
+  c.innerHTML = '';
+  let unlocked = 0;
+  achievements.forEach(a => {
+    if (a.unlocked) unlocked++;
+    const icon = (a.icon || "ph-star").split(' ')[0];
+    if (a.unlocked){
+      c.innerHTML += `
+        <div class="border border-emerald-500/30 bg-emerald-500/10 rounded-2xl p-3.5 flex items-center gap-3">
+          <div class="w-11 h-11 rounded-xl bg-slate-950 flex items-center justify-center shrink-0 border border-emerald-500/30 text-emerald-400">
+            <i class="ph-duotone ${icon} text-xl"></i>
+          </div>
+          <div class="overflow-hidden flex-1">
+            <div class="flex items-center justify-between gap-2">
+              <p class="text-xs font-bold text-slate-100 truncate">${a.title}</p>
+              <span class="text-[9px] font-black text-clsu-gold shrink-0">+${a.xpReward} XP</span>
+            </div>
+            <p class="text-[10px] text-slate-400 truncate">${a.desc}</p>
+            <p class="text-[9px] text-emerald-400 font-semibold mt-0.5"><i class="ph-fill ph-seal-check"></i> ${a.unlockedAt || 'Unlocked'}</p>
+          </div>
+        </div>`;
+    } else {
+      c.innerHTML += `
+        <div class="border border-slate-800 bg-slate-900/50 rounded-2xl p-3.5 flex items-center gap-3">
+          <div class="w-11 h-11 rounded-xl bg-slate-950 flex items-center justify-center shrink-0 border border-white/5 text-slate-600">
+            <i class="ph-duotone ${icon} text-xl"></i>
+          </div>
+          <div class="overflow-hidden flex-1">
+            <div class="flex items-center justify-between gap-2">
+              <p class="text-xs font-bold text-slate-400 truncate">${a.title}</p>
+              <span class="text-[9px] font-bold text-slate-600 shrink-0">+${a.xpReward} XP</span>
+            </div>
+            <p class="text-[10px] text-slate-500 truncate">${a.desc}</p>
+            <div class="flex items-center gap-2 mt-1.5">
+              <div class="flex-1 bg-slate-950 rounded-full h-1.5 overflow-hidden border border-white/5">
+                <div class="bg-slate-600 h-1.5 rounded-full" style="width:${a.progress||0}%"></div>
+              </div>
+              <span class="text-[9px] font-mono text-slate-500 shrink-0">${a.current||0}/${a.threshold}</span>
+            </div>
+          </div>
+        </div>`;
+    }
+  });
+  document.getElementById('dash-unlocked-count').innerText = `${unlocked}/${achievements.length}`;
+}
 
-        async function loadDashboard(studentId) {
-            showLoading("Syncing profile & badges...");
-            activeStudentId = studentId;
-            
-            try {
-                const response = await fetch(`${WEB_APP_URL}?requestType=dashboard&id=${encodeURIComponent(studentId)}`);
-                const data = await response.json();
-                
-                if (data.error) {
-                    hideLoading();
-                    localStorage.removeItem('cao_student_id');
-                    showAuthError("Student ID not found in Master Directory.");
-                    return;
-                }
+function renderSessions(sessions){
+  const c = document.getElementById('sessions-container');
+  c.innerHTML = '';
+  if (!sessions.length){
+    c.innerHTML = `<div class="text-center p-8">
+      <i class="ph-duotone ph-music-notes text-3xl text-slate-700"></i>
+      <p class="text-xs text-slate-500 mt-2">No rehearsals logged yet. Scan in at your next call time!</p></div>`;
+    return;
+  }
+  sessions.forEach(sess => {
+    const open = !!sess.open;
+    const lateBadge = sess.late && sess.late.indexOf('LATE') === 0
+      ? `<span class="text-[9px] font-black text-amber-400 bg-amber-500/10 border border-amber-500/30 px-1.5 py-0.5 rounded-md ml-1.5">LATE</span>` : '';
+    c.innerHTML += `
+      <div class="p-3.5 flex items-center justify-between text-xs">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl bg-slate-950 flex items-center justify-center border border-slate-800 ${open?'text-sky-400':'text-emerald-400'}">
+            <i class="ph-bold ${open?'ph-play':'ph-check'}"></i>
+          </div>
+          <div>
+            <p class="font-bold text-slate-200">${sess.date}${lateBadge}</p>
+            <p class="text-[10px] text-slate-500 font-mono">${sess.timeIn} → ${open ? 'in progress' : sess.timeOut}</p>
+          </div>
+        </div>
+        <p class="font-black ${open?'text-sky-400':'text-emerald-400'} font-mono">${open ? '● LIVE' : '+'+sess.hours+' hrs'}</p>
+      </div>`;
+  });
+}
 
-                localStorage.setItem('cao_student_id', studentId);
-                
-                document.getElementById('dash-name').innerText = data.name;
-                document.getElementById('dash-id').innerText = `ID: ${data.id}`;
-                document.getElementById('dash-group').innerText = data.group;
-                
-                const stats = data.stats;
-                document.getElementById('dash-hours').innerText = stats.hours;
-                document.getElementById('dash-xp').innerText = stats.xp;
-                document.getElementById('dash-xp-next').innerText = stats.xpNextLevel;
-                document.getElementById('dash-progress').style.width = `${stats.xpProgress}%`;
-                
-                const titles = ["Novice Artist", "Apprentice Performer", "Dedicated Member", "Section Virtuoso", "CAO Legend"];
-                const titleIndex = Math.min(stats.level - 1, 4);
-                document.getElementById('dash-level').innerText = `Level ${stats.level}: ${titles[titleIndex]}`;
+/* ── change PIN ── */
+function openChangePinModal(){
+  ['pin-current','pin-new','pin-confirm'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('modal-error').classList.add('hidden');
+  document.getElementById('modal-success').classList.add('hidden');
+  const m = document.getElementById('pin-modal');
+  m.classList.remove('hidden'); m.classList.add('flex');
+}
+function closeChangePinModal(){
+  const m = document.getElementById('pin-modal');
+  m.classList.add('hidden'); m.classList.remove('flex');
+}
+async function submitChangePin(){
+  const cur = document.getElementById('pin-current').value.trim();
+  const nw = document.getElementById('pin-new').value.trim();
+  const cf = document.getElementById('pin-confirm').value.trim();
+  const err = document.getElementById('modal-error'), ok = document.getElementById('modal-success');
+  err.classList.add('hidden'); ok.classList.add('hidden');
+  if (!/^\d{4}$/.test(nw)){ err.innerText="New PIN must be exactly 4 digits."; err.classList.remove('hidden'); return; }
+  if (nw !== cf){ err.innerText="New PIN and confirmation don't match."; err.classList.remove('hidden'); return; }
+  try {
+    const res = await fetch(WEB_APP_URL, { method:'POST',
+      body: JSON.stringify({ action:'changePin', id:activeStudentId, oldPin:cur, newPin:nw, token:sessionToken }) });
+    const r = await res.json();
+    if (r.success){ ok.innerText = r.message; ok.classList.remove('hidden'); setTimeout(closeChangePinModal, 1500); }
+    else { err.innerText = r.message || "Couldn't change the PIN."; err.classList.remove('hidden'); }
+  } catch(e){ err.innerText = "Can't reach the server."; err.classList.remove('hidden'); }
+}
 
-                renderBadges(data.achievements);
-                renderLogs(data.logs);
-
-                hideLoading();
-                document.getElementById('auth-page').classList.add('hidden');
-                document.getElementById('dashboard-page').classList.remove('hidden');
-                document.getElementById('dashboard-page').classList.add('flex');
-
-            } catch (err) {
-                hideLoading();
-                showAuthError("Failed to fetch dashboard data.");
-            }
-        }
-
-        function renderBadges(achievements) {
-            const container = document.getElementById('badges-container');
-            container.innerHTML = '';
-            
-            let unlockedCount = 0;
-
-            achievements.forEach(ach => {
-                if (ach.unlocked) unlockedCount++;
-
-                const style = ach.unlocked 
-                    ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400" 
-                    : "bg-slate-900/50 border-slate-800 text-slate-600 opacity-60";
-                
-                const iconClass = ach.icon ? ach.icon.split(' ')[0] : "ph-star";
-
-                container.innerHTML += `
-                    <div class="border rounded-2xl p-3 flex items-center gap-3 transition ${style}">
-                        <div class="w-10 h-10 rounded-xl bg-slate-950 flex items-center justify-center shrink-0 border border-white/5">
-                            <i class="ph-duotone ${iconClass} text-xl"></i>
-                        </div>
-                        <div class="overflow-hidden">
-                            <p class="text-xs font-bold text-slate-200 truncate">${ach.title}</p>
-                            <p class="text-[10px] text-slate-400 line-clamp-1">${ach.desc}</p>
-                        </div>
-                    </div>
-                `;
-            });
-
-            document.getElementById('dash-unlocked-count').innerText = `${unlockedCount} / ${achievements.length}`;
-        }
-
-        function renderLogs(logs) {
-            const container = document.getElementById('recent-logs-container');
-            container.innerHTML = '';
-            
-            if (!logs || logs.length === 0) {
-                container.innerHTML = '<p class="text-xs text-center text-slate-500 p-6">No recent activity logs found.</p>';
-                return;
-            }
-
-            logs.forEach(log => {
-                const color = log.action === 'Time IN' ? 'text-sky-400' : 'text-emerald-400';
-                const icon = log.action === 'Time IN' ? 'ph-sign-in' : 'ph-sign-out';
-                const durationBadge = log.duration && log.duration !== "-" ? `<span class="text-emerald-400 font-mono">+${log.duration} hrs</span>` : '';
-
-                container.innerHTML += `
-                    <div class="p-3.5 flex items-center justify-between text-xs">
-                        <div class="flex items-center gap-3">
-                            <div class="w-8 h-8 rounded-xl bg-slate-950 flex items-center justify-center border border-slate-800">
-                                <i class="ph-bold ${icon} ${color}"></i>
-                            </div>
-                            <div>
-                                <p class="font-bold text-slate-200">${log.action}</p>
-                                <p class="text-[10px] text-slate-500 font-mono">${log.date}</p>
-                            </div>
-                        </div>
-                        <div class="font-bold">
-                            ${durationBadge}
-                        </div>
-                    </div>
-                `;
-            });
-        }
-
-        function openChangePinModal() {
-            document.getElementById('pin-current').value = '';
-            document.getElementById('pin-new').value = '';
-            document.getElementById('pin-confirm').value = '';
-            document.getElementById('modal-error').classList.add('hidden');
-            document.getElementById('modal-success').classList.add('hidden');
-            document.getElementById('pin-modal').classList.remove('hidden');
-            document.getElementById('pin-modal').classList.add('flex');
-        }
-
-        function closeChangePinModal() {
-            document.getElementById('pin-modal').classList.add('hidden');
-            document.getElementById('pin-modal').classList.remove('flex');
-        }
-
-        async function submitChangePin() {
-            const currentPin = document.getElementById('pin-current').value.trim();
-            const newPin = document.getElementById('pin-new').value.trim();
-            const confirmPin = document.getElementById('pin-confirm').value.trim();
-            
-            const errDiv = document.getElementById('modal-error');
-            const successDiv = document.getElementById('modal-success');
-            errDiv.classList.add('hidden');
-            successDiv.classList.add('hidden');
-
-            if (!currentPin || !newPin || newPin.length < 4) {
-                errDiv.innerText = "PIN must be exactly 4 digits.";
-                errDiv.classList.remove('hidden');
-                return;
-            }
-
-            if (newPin !== confirmPin) {
-                errDiv.innerText = "New PIN and confirmation do not match.";
-                errDiv.classList.remove('hidden');
-                return;
-            }
-
-            showLoading("Updating PIN...");
-
-            try {
-                const response = await fetch(WEB_APP_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        action: 'changePin',
-                        id: activeStudentId,
-                        oldPin: currentPin,
-                        newPin: newPin
-                    })
-                });
-
-                const resData = await response.json();
-                hideLoading();
-
-                if (resData.success) {
-                    successDiv.innerText = resData.message;
-                    successDiv.classList.remove('hidden');
-                    setTimeout(() => {
-                        closeChangePinModal();
-                    }, 1800);
-                } else {
-                    errDiv.innerText = resData.message || "Failed to change PIN.";
-                    errDiv.classList.remove('hidden');
-                }
-            } catch (err) {
-                hideLoading();
-                errDiv.innerText = "Network Error. Please try again.";
-                errDiv.classList.remove('hidden');
-            }
-        }
-
-        function logout() {
-            localStorage.removeItem('cao_student_id');
-            activeStudentId = null;
-            document.getElementById('login-id').value = '';
-            document.getElementById('login-pin').value = '';
-            document.getElementById('dashboard-page').classList.add('hidden');
-            document.getElementById('dashboard-page').classList.remove('flex');
-            document.getElementById('auth-page').classList.remove('hidden');
-            document.getElementById('auth-page').classList.add('flex');
-        }
-    </script>
+/* ── logout ── */
+function forceLogout(msg){
+  logout();
+  if (msg) showAuthError(msg);
+}
+function logout(){
+  localStorage.removeItem('cao_student_id');
+  localStorage.removeItem('cao_token');
+  activeStudentId = null; sessionToken = null;
+  document.getElementById('login-pin').value = '';
+  showPage(false);
+}
+</script>
 </body>
 </html>
