@@ -182,10 +182,11 @@ input[type=password]{ -webkit-text-security:disc; }
         <div id="week-chart" class="flex items-end justify-between gap-2 h-24"></div>
       </div>
 
-      <!-- achievements -->
+      <!-- achievements / sticker collection -->
       <div>
-        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 px-1 flex items-center gap-2">
-          <i class="ph-bold ph-medal text-clsu-gold"></i> Achievements
+        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 px-1 flex items-center justify-between">
+          <span class="flex items-center gap-2"><i class="ph-bold ph-sticker text-clsu-gold"></i> Sticker collection</span>
+          <span class="text-[10px] text-slate-500 normal-case font-semibold">Tap a sticker to share</span>
         </h3>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" id="badges-container"></div>
       </div>
@@ -202,7 +203,43 @@ input[type=password]{ -webkit-text-security:disc; }
   </main>
 </div>
 
-<!-- change PIN modal -->
+<!-- sticker studio modal -->
+<div id="sticker-modal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 hidden items-center justify-center p-4 overflow-y-auto">
+  <div class="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-sm shadow-2xl my-auto overflow-hidden">
+    <div class="flex items-center justify-between px-5 py-3 border-b border-slate-800">
+      <h3 class="text-sm font-black text-white flex items-center gap-2"><i class="ph-bold ph-sticker text-clsu-gold"></i> Share sticker</h3>
+      <button onclick="closeSticker()" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 flex items-center justify-center"><i class="ph-bold ph-x"></i></button>
+    </div>
+
+    <div class="p-5 space-y-4">
+      <!-- live preview -->
+      <div class="flex justify-center">
+        <div class="rounded-2xl overflow-hidden border border-slate-700 shadow-xl bg-slate-950">
+          <canvas id="sticker-canvas" class="block max-w-full" style="width:260px;height:260px"></canvas>
+        </div>
+      </div>
+
+      <!-- shape switch -->
+      <div>
+        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Format</p>
+        <div class="flex gap-2" id="shape-switch">
+          <button data-shape="square" onclick="setShape('square')" class="shape-btn flex-1 py-2 rounded-xl text-[11px] font-bold bg-clsu-green text-white">Square<br><span class="opacity-60 font-normal">1:1 post</span></button>
+          <button data-shape="portrait" onclick="setShape('portrait')" class="shape-btn flex-1 py-2 rounded-xl text-[11px] font-bold bg-slate-800 text-slate-400">Portrait<br><span class="opacity-60 font-normal">4:5 feed</span></button>
+          <button data-shape="story" onclick="setShape('story')" class="shape-btn flex-1 py-2 rounded-xl text-[11px] font-bold bg-slate-800 text-slate-400">Story<br><span class="opacity-60 font-normal">9:16</span></button>
+        </div>
+      </div>
+
+      <!-- actions -->
+      <div class="grid grid-cols-2 gap-2">
+        <button onclick="shareSticker()" id="btn-share" class="bg-clsu-green hover:bg-green-800 text-white font-bold py-3 rounded-xl text-xs flex items-center justify-center gap-2"><i class="ph-bold ph-share-network"></i> Share</button>
+        <button onclick="downloadSticker()" class="bg-clsu-gold hover:bg-amber-400 text-slate-950 font-black py-3 rounded-xl text-xs flex items-center justify-center gap-2"><i class="ph-bold ph-download-simple"></i> Download</button>
+      </div>
+      <p id="sticker-hint" class="text-[10px] text-slate-500 text-center"></p>
+    </div>
+  </div>
+</div>
+
+
 <div id="pin-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 hidden items-center justify-center p-4">
   <div class="bg-slate-900 border border-slate-700 p-6 rounded-3xl w-full max-w-sm space-y-4 shadow-2xl">
     <h3 class="text-base font-black text-white flex items-center gap-2">
@@ -332,6 +369,7 @@ function refreshDashboard(){
 }
 
 function renderDashboard(data){
+  dashData = data;
   document.getElementById('dash-name').innerText = data.name;
   document.getElementById('dash-id').innerText = "ID: " + data.id;
   document.getElementById('dash-group').innerText = data.group;
@@ -377,40 +415,52 @@ function renderWeek(week){
   });
 }
 
+const RARITY = {
+  common:      { label:'Common',      ring:'#b45309', grad:['#78350f','#b45309'], text:'text-amber-500',  chip:'bg-amber-900/40 border-amber-700/50 text-amber-400' },
+  rare:        { label:'Rare',        ring:'#94a3b8', grad:['#475569','#cbd5e1'], text:'text-slate-300',  chip:'bg-slate-700/40 border-slate-500/50 text-slate-300' },
+  epic:        { label:'Epic',        ring:'#FFC000', grad:['#a16207','#FFC000'], text:'text-clsu-gold',  chip:'bg-amber-500/10 border-amber-400/50 text-clsu-gold' },
+  legendary:   { label:'Legendary',   ring:'#FFC000', grad:['#b45309','#fde047'], text:'text-clsu-gold',  chip:'bg-gradient-to-r from-amber-500/20 to-yellow-400/20 border-yellow-400/60 text-yellow-300' },
+  performance: { label:'Performance', ring:'#f472b6', grad:['#831843','#f472b6'], text:'text-pink-400',   chip:'bg-pink-500/10 border-pink-400/50 text-pink-400' },
+  special:     { label:'Special',     ring:'#34d399', grad:['#065f46','#34d399'], text:'text-emerald-400',chip:'bg-emerald-500/10 border-emerald-400/50 text-emerald-400' }
+};
+let dashData = null; // keep last payload for the sticker studio
+
 function renderBadges(achievements){
   const c = document.getElementById('badges-container');
   c.innerHTML = '';
   let unlocked = 0;
-  achievements.forEach(a => {
-    if (a.unlocked) unlocked++;
+  achievements.forEach((a, idx) => {
     const icon = (a.icon || "ph-star").split(' ')[0];
+    const r = RARITY[a.rarity] || RARITY.special;
     if (a.unlocked){
+      unlocked++;
       c.innerHTML += `
-        <div class="border border-emerald-500/30 bg-emerald-500/10 rounded-2xl p-3.5 flex items-center gap-3">
-          <div class="w-11 h-11 rounded-xl bg-slate-950 flex items-center justify-center shrink-0 border border-emerald-500/30 text-emerald-400">
-            <i class="ph-duotone ${icon} text-xl"></i>
+        <button onclick="openSticker(${idx})" class="text-left border rounded-2xl p-3.5 flex items-center gap-3 transition hover:scale-[1.02] active:scale-95"
+          style="border-color:${r.ring}55; background:linear-gradient(135deg, ${r.grad[0]}22, ${r.grad[1]}18);">
+          <div class="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 shadow-lg" style="background:linear-gradient(135deg, ${r.grad[0]}, ${r.grad[1]});">
+            <i class="ph-fill ${icon} text-2xl text-white drop-shadow"></i>
           </div>
           <div class="overflow-hidden flex-1">
             <div class="flex items-center justify-between gap-2">
-              <p class="text-xs font-bold text-slate-100 truncate">${a.title}</p>
-              <span class="text-[9px] font-black text-clsu-gold shrink-0">+${a.xpReward} XP</span>
+              <p class="text-xs font-black text-slate-100 truncate">${a.title}</p>
+              <span class="text-[8px] font-black uppercase px-1.5 py-0.5 rounded border ${r.chip} shrink-0">${r.label}</span>
             </div>
             <p class="text-[10px] text-slate-400 truncate">${a.desc}</p>
-            <p class="text-[9px] text-emerald-400 font-semibold mt-0.5"><i class="ph-fill ph-seal-check"></i> ${a.unlockedAt || 'Unlocked'}</p>
+            <p class="text-[9px] ${r.text} font-bold mt-0.5 flex items-center gap-1"><i class="ph-fill ph-share-network"></i> Tap to share · ${a.unlockedAt||'Unlocked'}</p>
           </div>
-        </div>`;
+        </button>`;
     } else {
       c.innerHTML += `
         <div class="border border-slate-800 bg-slate-900/50 rounded-2xl p-3.5 flex items-center gap-3">
-          <div class="w-11 h-11 rounded-xl bg-slate-950 flex items-center justify-center shrink-0 border border-white/5 text-slate-600">
-            <i class="ph-duotone ${icon} text-xl"></i>
+          <div class="w-12 h-12 rounded-xl bg-slate-950 flex items-center justify-center shrink-0 border border-white/5 text-slate-700">
+            <i class="ph-duotone ${icon} text-2xl"></i>
           </div>
           <div class="overflow-hidden flex-1">
             <div class="flex items-center justify-between gap-2">
-              <p class="text-xs font-bold text-slate-400 truncate">${a.title}</p>
-              <span class="text-[9px] font-bold text-slate-600 shrink-0">+${a.xpReward} XP</span>
+              <p class="text-xs font-bold text-slate-500 truncate">${a.title}</p>
+              <span class="text-[8px] font-black text-slate-700 shrink-0"><i class="ph-fill ph-lock-simple"></i> LOCKED</span>
             </div>
-            <p class="text-[10px] text-slate-500 truncate">${a.desc}</p>
+            <p class="text-[10px] text-slate-600 truncate">${a.desc}</p>
             <div class="flex items-center gap-2 mt-1.5">
               <div class="flex-1 bg-slate-950 rounded-full h-1.5 overflow-hidden border border-white/5">
                 <div class="bg-slate-600 h-1.5 rounded-full" style="width:${a.progress||0}%"></div>
@@ -481,6 +531,196 @@ async function submitChangePin(){
     else { err.innerText = r.message || "Couldn't change the PIN."; err.classList.remove('hidden'); }
   } catch(e){ err.innerText = "Can't reach the server."; err.classList.remove('hidden'); }
 }
+
+/* ═══════════════════ STICKER STUDIO (Phase 3) ═══════════════════ */
+const SHAPES = {
+  square:   { w:1080, h:1080 },
+  portrait: { w:1080, h:1350 },
+  story:    { w:1080, h:1920 }
+};
+let stickerBadge = null, stickerShape = 'square', phosphorFont = null;
+
+// Phosphor icon glyphs used on the canvas (unicode from the Phosphor font)
+const GLYPH = {
+  'ph-first-aid':'\uE1F4','ph-medal':'\uE3B0','ph-medal-bronze':'\uE3B0','ph-medal-silver':'\uE3B0','ph-medal-gold':'\uE3B0',
+  'ph-fire':'\uE20E','ph-moon':'\uE3C6','ph-star':'\uE4D8','ph-trophy':'\uE55C','ph-microphone':'\uE382',
+  'ph-music-note':'\uE3BE','ph-crown':'\uE162','ph-sparkle':'\uE4CE','ph-lightning':'\uE332'
+};
+
+function openSticker(idx){
+  const a = (dashData.achievements||[])[idx];
+  if (!a || !a.unlocked) return;
+  stickerBadge = a;
+  document.getElementById('sticker-modal').classList.remove('hidden');
+  document.getElementById('sticker-modal').classList.add('flex');
+  document.getElementById('sticker-hint').innerText = "";
+  setShape('square');
+}
+function closeSticker(){
+  const m = document.getElementById('sticker-modal');
+  m.classList.add('hidden'); m.classList.remove('flex');
+}
+function setShape(shape){
+  stickerShape = shape;
+  document.querySelectorAll('.shape-btn').forEach(b=>{
+    const on = b.dataset.shape === shape;
+    b.className = "shape-btn flex-1 py-2 rounded-xl text-[11px] font-bold " + (on?'bg-clsu-green text-white':'bg-slate-800 text-slate-400');
+  });
+  drawSticker();
+}
+
+function roundRect(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath();
+}
+
+function drawSticker(){
+  const a = stickerBadge; if (!a) return;
+  const dim = SHAPES[stickerShape];
+  const canvas = document.getElementById('sticker-canvas');
+  canvas.width = dim.w; canvas.height = dim.h;
+  // keep preview box proportional
+  const previewH = 260 * (dim.h/dim.w);
+  canvas.style.width = '260px'; canvas.style.height = previewH + 'px';
+  const ctx = canvas.getContext('2d');
+  const r = RARITY[a.rarity] || RARITY.special;
+  const cx = dim.w/2;
+
+  // background: deep gradient tinted by rarity
+  const bg = ctx.createLinearGradient(0,0,dim.w,dim.h);
+  bg.addColorStop(0,'#0f172a'); bg.addColorStop(0.55,'#020617'); bg.addColorStop(1, r.grad[0]);
+  ctx.fillStyle = bg; ctx.fillRect(0,0,dim.w,dim.h);
+
+  // soft glow blob
+  const glow = ctx.createRadialGradient(cx, dim.h*0.34, 40, cx, dim.h*0.34, dim.w*0.6);
+  glow.addColorStop(0, r.grad[1]+'55'); glow.addColorStop(1, 'transparent');
+  ctx.fillStyle = glow; ctx.fillRect(0,0,dim.w,dim.h);
+
+  // rarity border frame
+  ctx.strokeStyle = r.ring; ctx.lineWidth = 14;
+  roundRect(ctx, 28, 28, dim.w-56, dim.h-56, 56); ctx.stroke();
+
+  // top: CAO wordmark
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#FFC000';
+  ctx.font = '700 34px Inter, sans-serif';
+  ctx.fillText('CLSU · CULTURAL AFFAIRS OFFICE', cx, 110);
+
+  // rarity label pill
+  ctx.font = '800 30px Inter, sans-serif';
+  const rl = r.label.toUpperCase();
+  const plw = ctx.measureText(rl).width + 64;
+  ctx.fillStyle = r.ring;
+  roundRect(ctx, cx-plw/2, 140, plw, 56, 28); ctx.fill();
+  ctx.fillStyle = '#0b1120'; ctx.fillText(rl, cx, 179);
+
+  // badge medallion
+  const medR = dim.w*0.20;
+  const medY = dim.h*0.34;
+  const grad = ctx.createLinearGradient(cx-medR, medY-medR, cx+medR, medY+medR);
+  grad.addColorStop(0, r.grad[0]); grad.addColorStop(1, r.grad[1]);
+  ctx.fillStyle = grad;
+  ctx.beginPath(); ctx.arc(cx, medY, medR, 0, Math.PI*2); ctx.fill();
+  ctx.strokeStyle = '#ffffff33'; ctx.lineWidth = 8; ctx.stroke();
+
+  // icon glyph (Phosphor) or fallback star
+  const glyph = GLYPH[(a.icon||'').trim()] || GLYPH['ph-star'];
+  ctx.fillStyle = '#ffffff';
+  ctx.font = `${medR*1.05}px Phosphor-Fill, "Phosphor"`;
+  ctx.fillText(glyph, cx, medY + medR*0.38);
+
+  // title
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '900 62px Inter, sans-serif';
+  wrapText(ctx, a.title, cx, medY + medR + 90, dim.w-160, 66);
+
+  // description
+  ctx.fillStyle = '#cbd5e1';
+  ctx.font = '500 32px Inter, sans-serif';
+  const descY = medY + medR + (a.title.length>18?230:160);
+  wrapText(ctx, a.desc, cx, descY, dim.w-200, 40);
+
+  // performer name
+  ctx.fillStyle = '#FFC000';
+  ctx.font = '800 46px Inter, sans-serif';
+  const nameY = stickerShape==='story' ? dim.h*0.72 : dim.h*0.70;
+  ctx.fillText((dashData.name||'').toUpperCase(), cx, nameY);
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '600 28px Inter, sans-serif';
+  ctx.fillText(dashData.group||'', cx, nameY + 42);
+
+  // stat strip
+  const s = dashData.stats || {};
+  const stats = [
+    ['LEVEL', s.level || 1],
+    ['HOURS', s.hours || '0'],
+    ['XP', s.xp || 0],
+    ['STREAK', (s.streak||0)+'d']
+  ];
+  const stripY = nameY + 110;
+  const cellW = (dim.w-200) / stats.length;
+  stats.forEach((st,i)=>{
+    const x = 100 + cellW*i + cellW/2;
+    ctx.fillStyle = '#ffffff'; ctx.font = '900 52px Inter, sans-serif';
+    ctx.fillText(String(st[1]), x, stripY);
+    ctx.fillStyle = r.ring; ctx.font = '700 24px Inter, sans-serif';
+    ctx.fillText(st[0], x, stripY + 40);
+  });
+
+  // footer tag
+  ctx.fillStyle = '#475569';
+  ctx.font = '600 26px Inter, sans-serif';
+  ctx.fillText('Performers\u2019 Hub · earned, not given', cx, dim.h-70);
+}
+
+function wrapText(ctx, text, x, y, maxW, lh){
+  const words = String(text||'').split(' ');
+  let line = '', yy = y;
+  for (let n=0;n<words.length;n++){
+    const test = line + words[n] + ' ';
+    if (ctx.measureText(test).width > maxW && n>0){ ctx.fillText(line.trim(), x, yy); line = words[n]+' '; yy += lh; }
+    else line = test;
+  }
+  ctx.fillText(line.trim(), x, yy);
+}
+
+function canvasBlob(){
+  return new Promise(res => document.getElementById('sticker-canvas').toBlob(res, 'image/png'));
+}
+async function downloadSticker(){
+  const blob = await canvasBlob();
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `CAO_${(stickerBadge.title||'sticker').replace(/\s+/g,'_')}_${stickerShape}.png`;
+  a.click(); URL.revokeObjectURL(a.href);
+  document.getElementById('sticker-hint').innerText = "Saved! Post it and tag CAO 🎭";
+}
+async function shareSticker(){
+  const blob = await canvasBlob();
+  const file = new File([blob], `CAO_${stickerShape}.png`, { type:'image/png' });
+  if (navigator.canShare && navigator.canShare({ files:[file] })){
+    try {
+      await navigator.share({ files:[file],
+        title:'My CAO sticker',
+        text:`I just earned "${stickerBadge.title}" at CLSU Cultural Affairs Office! 🎭` });
+      document.getElementById('sticker-hint').innerText = "Shared!";
+    } catch(e){ /* user cancelled */ }
+  } else {
+    downloadSticker();
+    document.getElementById('sticker-hint').innerText = "Sharing not supported here — downloaded instead.";
+  }
+}
+
+/* preload Phosphor font so canvas glyphs render */
+function preloadStickerFonts(){
+  if (document.getElementById('phosphor-fill-face')) return;
+  const s = document.createElement('style');
+  s.id = 'phosphor-fill-face';
+  s.textContent = `@font-face{ font-family:'Phosphor-Fill'; src:url('https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/Phosphor-Fill.woff2') format('woff2'); font-display:swap; }`;
+  document.head.appendChild(s);
+}
+preloadStickerFonts();
 
 /* ── logout ── */
 function forceLogout(msg){
