@@ -100,6 +100,9 @@ input[type=password]{ -webkit-text-security:disc; }
       <button onclick="refreshDashboard()" id="btn-refresh" title="Refresh" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition border border-slate-700">
         <i id="refresh-icon" class="ph-bold ph-arrows-clockwise text-base text-emerald-400"></i>
       </button>
+      <button onclick="openWrapped()" title="Season Wrapped" class="p-2.5 rounded-xl bg-gradient-to-br from-clsu-gold to-amber-500 hover:from-amber-400 text-slate-950 transition border border-amber-300/40 flex items-center gap-1.5 text-xs font-black">
+        <i class="ph-fill ph-sparkle text-base"></i><span class="hidden sm:inline">Wrapped</span>
+      </button>
       <button onclick="showMyId()" title="My member card" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition border border-slate-700 flex items-center gap-1.5 text-xs font-bold">
         <i class="ph-bold ph-identification-card text-base text-clsu-gold"></i><span class="hidden sm:inline">My ID</span>
       </button>
@@ -224,6 +227,58 @@ input[type=password]{ -webkit-text-security:disc; }
       </div>
     </div>
   </main>
+</div>
+
+<!-- Season Wrapped story overlay -->
+<div id="wrapped-overlay" class="fixed inset-0 z-[60] hidden bg-slate-950">
+  <!-- progress bars -->
+  <div id="wr-progress" class="absolute top-0 left-0 right-0 flex gap-1 p-3 z-20"></div>
+
+  <button onclick="closeWrapped()" class="absolute top-3 right-3 z-30 w-9 h-9 rounded-full bg-slate-900/80 border border-slate-700 text-slate-300 flex items-center justify-center">
+    <i class="ph-bold ph-x"></i>
+  </button>
+
+  <!-- period picker (shown on first slide) -->
+  <div id="wr-period" class="absolute top-14 left-0 right-0 z-20 flex justify-center gap-2 px-4">
+    <button onclick="wrappedPreset()" id="wr-btn-season" class="px-3 py-1.5 rounded-full text-[10px] font-black bg-clsu-gold text-slate-950">Season</button>
+    <button onclick="wrappedCustom()" id="wr-btn-custom" class="px-3 py-1.5 rounded-full text-[10px] font-black bg-slate-800 text-slate-400 border border-slate-700">Custom range</button>
+  </div>
+
+  <!-- tap zones -->
+  <div class="absolute inset-0 flex z-10">
+    <div class="w-1/3 h-full" onclick="wrPrev()"></div>
+    <div class="w-2/3 h-full" onclick="wrNext()"></div>
+  </div>
+
+  <!-- slide stage -->
+  <div id="wr-stage" class="absolute inset-0 flex items-center justify-center p-8 text-center"></div>
+
+  <!-- footer actions (last slide) -->
+  <div id="wr-actions" class="absolute bottom-6 left-0 right-0 z-20 hidden px-8">
+    <button onclick="shareWrapped()" class="w-full bg-clsu-gold hover:bg-amber-400 text-slate-950 font-black py-3 rounded-2xl text-sm flex items-center justify-center gap-2">
+      <i class="ph-bold ph-share-network"></i> Share my Wrapped
+    </button>
+    <p class="text-[10px] text-slate-500 text-center mt-2">Tap left/right to move between slides</p>
+  </div>
+
+  <canvas id="wr-canvas" class="hidden"></canvas>
+</div>
+
+<!-- custom range picker -->
+<div id="wr-range-modal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-[70] hidden items-center justify-center p-4">
+  <div class="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-xs p-5 space-y-3 shadow-2xl">
+    <h3 class="text-sm font-black text-white flex items-center gap-2"><i class="ph-bold ph-calendar-blank text-clsu-gold"></i> Custom period</h3>
+    <div class="grid grid-cols-2 gap-2">
+      <div><label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">From</label>
+        <input id="wr-from" type="date" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-2 py-2 text-slate-200 text-xs focus:outline-none focus:border-clsu-gold"></div>
+      <div><label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">To</label>
+        <input id="wr-to" type="date" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-2 py-2 text-slate-200 text-xs focus:outline-none focus:border-clsu-gold"></div>
+    </div>
+    <div class="flex gap-2">
+      <button onclick="applyWrappedRange()" class="flex-1 bg-clsu-green text-white font-bold py-2.5 rounded-xl text-xs">Generate</button>
+      <button onclick="document.getElementById('wr-range-modal').classList.add('hidden')" class="flex-1 bg-slate-800 text-slate-300 font-bold py-2.5 rounded-xl text-xs">Cancel</button>
+    </div>
+  </div>
 </div>
 
 <!-- excuse request modal -->
@@ -781,6 +836,197 @@ async function submitExcuse(btn){
     else msg.innerHTML = `<span class="text-rose-400">${r.message||'Failed.'}</span>`;
   } catch(e){ msg.innerHTML = '<span class="text-rose-400">Network error.</span>'; }
   btn.disabled = false; btn.innerHTML = 'Submit request';
+}
+
+/* ═══════════════════ SEASON WRAPPED (Phase 7) ═══════════════════ */
+let wrData = null, wrSlides = [], wrIndex = 0, wrRange = null;
+
+async function openWrapped(){
+  document.getElementById('wrapped-overlay').classList.remove('hidden');
+  document.getElementById('wr-stage').innerHTML =
+    `<div class="text-center"><i class="ph-duotone ph-sparkle text-5xl text-clsu-gold animate-pulse"></i>
+     <p class="text-sm text-slate-400 mt-4">Building your season…</p></div>`;
+  document.getElementById('wr-actions').classList.add('hidden');
+  await loadWrapped();
+}
+function closeWrapped(){
+  document.getElementById('wrapped-overlay').classList.add('hidden');
+  wrIndex = 0;
+}
+function wrappedPreset(){ wrRange = null; setWrTab(true); loadWrapped(); }
+function wrappedCustom(){ document.getElementById('wr-range-modal').classList.remove('hidden');
+  document.getElementById('wr-range-modal').classList.add('flex'); }
+function applyWrappedRange(){
+  const f = document.getElementById('wr-from').value, t = document.getElementById('wr-to').value;
+  if (!f || !t) return;
+  wrRange = { from:f, to:t };
+  document.getElementById('wr-range-modal').classList.add('hidden');
+  document.getElementById('wr-range-modal').classList.remove('flex');
+  setWrTab(false); loadWrapped();
+}
+function setWrTab(isSeason){
+  document.getElementById('wr-btn-season').className = "px-3 py-1.5 rounded-full text-[10px] font-black " + (isSeason?'bg-clsu-gold text-slate-950':'bg-slate-800 text-slate-400 border border-slate-700');
+  document.getElementById('wr-btn-custom').className = "px-3 py-1.5 rounded-full text-[10px] font-black " + (!isSeason?'bg-clsu-gold text-slate-950':'bg-slate-800 text-slate-400 border border-slate-700');
+}
+
+async function loadWrapped(){
+  const q = new URLSearchParams({ requestType:'wrapped', id:activeStudentId, token:sessionToken });
+  if (wrRange){ q.set('from', wrRange.from); q.set('to', wrRange.to); }
+  try {
+    const res = await fetch(`${WEB_APP_URL}?${q.toString()}`);
+    const d = await res.json();
+    if (d.error){ closeWrapped(); if (d.error==='SESSION_EXPIRED') forceLogout("Session expired — log in again."); return; }
+    wrData = d; buildSlides(d); wrIndex = 0; paintSlide();
+  } catch(e){
+    document.getElementById('wr-stage').innerHTML = `<p class="text-sm text-slate-400">Couldn't load your recap.</p>`;
+  }
+}
+
+function buildSlides(d){
+  const s = d.stats, p = d.personality;
+  const big = (v)=>`<p class="text-7xl font-black text-clsu-gold leading-none">${v}</p>`;
+  wrSlides = [];
+
+  wrSlides.push({ bg:'from-clsu-green via-slate-900 to-slate-950', html:`
+    <div><i class="ph-duotone ph-sparkle text-6xl text-clsu-gold"></i>
+    <h1 class="text-4xl font-black text-white mt-4 leading-tight">Your CAO<br>Season</h1>
+    <p class="text-sm text-clsu-gold font-bold mt-2">${d.period.label}</p>
+    <p class="text-[11px] text-slate-400 mt-1">${d.period.pretty}</p>
+    <p class="text-xs text-slate-500 mt-8">Tap to begin →</p></div>` });
+
+  wrSlides.push({ bg:'from-sky-900 via-slate-900 to-slate-950', html:`
+    <div><p class="text-xs text-sky-300 font-bold uppercase tracking-widest">You rehearsed for</p>
+    ${big(s.hours)}<p class="text-xl font-black text-white mt-1">hours</p>
+    <p class="text-sm text-slate-400 mt-6">across <span class="text-white font-bold">${s.events}</span> ${s.events===1?'day':'days'} in the room</p></div>` });
+
+  wrSlides.push({ bg:'from-pink-900 via-slate-900 to-slate-950', html:`
+    <div><p class="text-xs text-pink-300 font-bold uppercase tracking-widest">You showed up for</p>
+    <div class="flex items-end justify-center gap-8 mt-6">
+      <div>${big(s.rehearsals)}<p class="text-xs font-bold text-slate-300 mt-1">rehearsals</p></div>
+      <div><p class="text-7xl font-black text-pink-400 leading-none">${s.performances}</p><p class="text-xs font-bold text-slate-300 mt-1">performances</p></div>
+    </div>
+    ${s.performances?`<p class="text-sm text-slate-400 mt-6">The stage saw you ${s.performances} ${s.performances===1?'time':'times'}. 🎭</p>`:`<p class="text-sm text-slate-400 mt-6">Next season, the stage awaits.</p>`}</div>` });
+
+  wrSlides.push({ bg:'from-orange-900 via-slate-900 to-slate-950', html:`
+    <div><i class="ph-fill ph-fire text-5xl text-orange-400"></i>
+    <p class="text-xs text-orange-300 font-bold uppercase tracking-widest mt-3">Longest streak</p>
+    ${big(s.longestStreak)}<p class="text-xl font-black text-white mt-1">${s.longestStreak===1?'day':'days'} in a row</p>
+    <p class="text-sm text-slate-400 mt-6">On-time rate: <span class="text-white font-bold">${s.onTimeRate}%</span></p></div>` });
+
+  const badgeIcons = (s.badges||[]).slice(0,6).map(b=>`<i class="ph-fill ${b.icon} text-3xl text-clsu-gold"></i>`).join('');
+  wrSlides.push({ bg:'from-amber-900 via-slate-900 to-slate-950', html:`
+    <div><p class="text-xs text-amber-300 font-bold uppercase tracking-widest">Badges earned</p>
+    ${big(s.badgeCount)}
+    <div class="flex flex-wrap justify-center gap-3 mt-4">${badgeIcons}</div>
+    <p class="text-sm text-slate-400 mt-6">${s.badgeCount?'New stickers for the collection.':'The collection is waiting.'}</p></div>` });
+
+  wrSlides.push({ bg:'from-emerald-900 via-slate-900 to-slate-950', html:`
+    <div><p class="text-xs text-emerald-300 font-bold uppercase tracking-widest">In ${d.section}</p>
+    <p class="text-6xl font-black text-clsu-gold leading-none mt-3">Top ${s.percentile}%</p>
+    <p class="text-sm text-slate-300 mt-3">Rank <span class="font-black text-white">#${s.rank}</span> of ${s.groupSize}</p>
+    ${s.busiestMonth?`<p class="text-sm text-slate-400 mt-6">Your biggest month was <span class="text-white font-bold">${s.busiestMonth}</span></p>`:''}
+    ${s.favouriteDay?`<p class="text-xs text-slate-500 mt-1">You loved a good ${s.favouriteDay}</p>`:''}</div>` });
+
+  wrSlides.push({ bg:'from-violet-900 via-slate-900 to-slate-950', html:`
+    <div><p class="text-xs text-violet-300 font-bold uppercase tracking-widest">Your performer type</p>
+    <i class="ph-duotone ${p.icon} text-6xl text-clsu-gold mt-4"></i>
+    <h2 class="text-4xl font-black text-white mt-3 leading-tight">${p.title}</h2>
+    <p class="text-sm text-slate-300 mt-3 max-w-xs mx-auto">${p.desc}</p></div>` });
+
+  wrSlides.push({ last:true, bg:'from-clsu-green via-slate-900 to-slate-950', html:`
+    <div><p class="text-xs text-clsu-gold font-bold uppercase tracking-widest">${d.period.label}</p>
+    <h2 class="text-2xl font-black text-white mt-1">${d.name}</h2>
+    <p class="text-xs text-slate-400">${d.group}</p>
+    <div class="grid grid-cols-2 gap-3 mt-6 max-w-[260px] mx-auto">
+      ${[['Hours',s.hours],['Days',s.events],['Streak',s.longestStreak+'d'],['Badges',s.badgeCount]].map(x=>
+        `<div class="bg-slate-950/70 border border-white/10 rounded-2xl py-3"><p class="text-2xl font-black text-white">${x[1]}</p>
+        <p class="text-[9px] text-slate-400 font-bold uppercase tracking-wider">${x[0]}</p></div>`).join('')}
+    </div>
+    <p class="text-sm font-black text-clsu-gold mt-5">${p.title}</p>
+    <p class="text-[10px] text-slate-500 mt-1">Top ${s.percentile}% in ${d.section}</p></div>` });
+}
+
+function paintSlide(){
+  const sl = wrSlides[wrIndex];
+  const stage = document.getElementById('wr-stage');
+  stage.className = `absolute inset-0 flex items-center justify-center p-8 text-center bg-gradient-to-br ${sl.bg}`;
+  stage.innerHTML = sl.html;
+  // progress bars
+  document.getElementById('wr-progress').innerHTML = wrSlides.map((_,i)=>
+    `<div class="flex-1 h-1 rounded-full ${i<=wrIndex?'bg-clsu-gold':'bg-slate-700'}"></div>`).join('');
+  document.getElementById('wr-period').style.display = wrIndex===0 ? 'flex' : 'none';
+  document.getElementById('wr-actions').classList.toggle('hidden', !sl.last);
+}
+function wrNext(){ if (wrIndex < wrSlides.length-1){ wrIndex++; paintSlide(); } }
+function wrPrev(){ if (wrIndex > 0){ wrIndex--; paintSlide(); } }
+
+/* share: render the summary as a 9:16 image */
+async function shareWrapped(){
+  const d = wrData, s = d.stats, p = d.personality;
+  const c = document.getElementById('wr-canvas');
+  c.width = 1080; c.height = 1920;
+  const ctx = c.getContext('2d');
+  const cx = 540;
+
+  const bg = ctx.createLinearGradient(0,0,1080,1920);
+  bg.addColorStop(0,'#006633'); bg.addColorStop(0.5,'#0f172a'); bg.addColorStop(1,'#020617');
+  ctx.fillStyle = bg; ctx.fillRect(0,0,1080,1920);
+  ctx.strokeStyle = '#FFC000'; ctx.lineWidth = 12;
+  ctx.strokeRect(40,40,1000,1840);
+
+  ctx.textAlign='center';
+  ctx.fillStyle='#FFC000'; ctx.font='800 34px Inter, sans-serif';
+  ctx.fillText('CLSU · CULTURAL AFFAIRS OFFICE', cx, 150);
+  ctx.fillStyle='#ffffff'; ctx.font='900 90px Inter, sans-serif';
+  ctx.fillText('MY SEASON', cx, 270);
+  ctx.fillStyle='#94a3b8'; ctx.font='600 34px Inter, sans-serif';
+  ctx.fillText(d.period.label, cx, 325);
+
+  ctx.fillStyle='#FFC000'; ctx.font='900 56px Inter, sans-serif';
+  ctx.fillText(d.name.toUpperCase(), cx, 440);
+  ctx.fillStyle='#94a3b8'; ctx.font='600 32px Inter, sans-serif';
+  ctx.fillText(d.group, cx, 488);
+
+  // stat grid
+  const cells = [['HOURS',s.hours],['DAYS',s.events],['PERFORMANCES',s.performances],['LONGEST STREAK',s.longestStreak+'d'],['BADGES',s.badgeCount],['ON TIME',s.onTimeRate+'%']];
+  cells.forEach((cell,i)=>{
+    const col = i%2, row = Math.floor(i/2);
+    const x = 130 + col*430, y = 600 + row*220;
+    ctx.fillStyle='rgba(2,6,23,0.6)';
+    roundRect(ctx, x, y, 390, 180, 28); ctx.fill();
+    ctx.strokeStyle='#ffffff22'; ctx.lineWidth=2; ctx.stroke();
+    ctx.fillStyle='#ffffff'; ctx.font='900 72px Inter, sans-serif';
+    ctx.fillText(String(cell[1]), x+195, y+100);
+    ctx.fillStyle='#FFC000'; ctx.font='700 26px Inter, sans-serif';
+    ctx.fillText(cell[0], x+195, y+142);
+  });
+
+  // personality
+  ctx.fillStyle='#94a3b8'; ctx.font='700 30px Inter, sans-serif';
+  ctx.fillText('MY PERFORMER TYPE', cx, 1340);
+  ctx.fillStyle='#FFC000'; ctx.font='900 82px Inter, sans-serif';
+  ctx.fillText(p.title.toUpperCase(), cx, 1430);
+  ctx.fillStyle='#cbd5e1'; ctx.font='500 34px Inter, sans-serif';
+  wrapText(ctx, p.desc, cx, 1500, 860, 46);
+
+  // rank
+  ctx.fillStyle='#ffffff'; ctx.font='900 54px Inter, sans-serif';
+  ctx.fillText(`Top ${s.percentile}% in ${d.section}`, cx, 1700);
+
+  ctx.fillStyle='#475569'; ctx.font='600 28px Inter, sans-serif';
+  ctx.fillText("Performers' Hub · earned, not given", cx, 1810);
+
+  c.toBlob(async (blob)=>{
+    const file = new File([blob], 'CAO_Wrapped.png', { type:'image/png' });
+    if (navigator.canShare && navigator.canShare({ files:[file] })){
+      try { await navigator.share({ files:[file], title:'My CAO Season',
+        text:`My CAO season: ${s.hours} hours, ${s.events} days, ${s.badgeCount} badges — ${p.title}! 🎭` }); return; }
+      catch(e){ /* cancelled */ }
+    }
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = 'CAO_Wrapped.png'; a.click();
+    URL.revokeObjectURL(a.href);
+  }, 'image/png');
 }
 
 /* ═══════════════════ MEMBER ID CARD (Phase 5) ═══════════════════ */
