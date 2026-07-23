@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>CAO Performers' Hub</title>
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#006633">
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://unpkg.com/@phosphor-icons/web"></script>
 <script>
@@ -108,6 +110,9 @@ input[type=password]{ -webkit-text-security:disc; }
       </button>
       <button onclick="openNotifyPrefs()" title="Notification preferences" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition border border-slate-700">
         <i id="bell-icon" class="ph-bold ph-bell text-base text-clsu-gold"></i>
+      </button>
+      <button onclick="openEditProfile()" title="Edit profile" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition border border-slate-700">
+        <i class="ph-bold ph-user-gear text-base text-clsu-gold"></i>
       </button>
       <button onclick="openChangePinModal()" title="Change PIN" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition border border-slate-700 flex items-center gap-1.5 text-xs font-bold">
         <i class="ph-bold ph-key text-base text-clsu-gold"></i><span class="hidden sm:inline">Change PIN</span>
@@ -280,6 +285,52 @@ input[type=password]{ -webkit-text-security:disc; }
     <div class="flex gap-2">
       <button onclick="applyWrappedRange()" class="flex-1 bg-clsu-green text-white font-bold py-2.5 rounded-xl text-xs">Generate</button>
       <button onclick="document.getElementById('wr-range-modal').classList.add('hidden')" class="flex-1 bg-slate-800 text-slate-300 font-bold py-2.5 rounded-xl text-xs">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- edit profile modal -->
+<div id="profile-modal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 hidden items-center justify-center p-4 overflow-y-auto">
+  <div class="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-sm my-auto shadow-2xl">
+    <div class="flex items-center justify-between px-5 py-3 border-b border-slate-800">
+      <h3 class="text-sm font-black text-white flex items-center gap-2"><i class="ph-bold ph-user-gear text-clsu-gold"></i> Edit profile</h3>
+      <button onclick="closeEditProfile()" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 flex items-center justify-center"><i class="ph-bold ph-x"></i></button>
+    </div>
+
+    <div class="p-5 space-y-4">
+      <!-- photo -->
+      <div class="flex flex-col items-center gap-3">
+        <div id="pf-avatar-wrap" class="w-24 h-24 rounded-2xl overflow-hidden border-4 border-clsu-gold bg-slate-950 flex items-center justify-center text-3xl font-black text-clsu-gold">
+          <span id="pf-avatar-initials"></span>
+          <img id="pf-avatar-img" class="hidden w-full h-full object-cover" alt="">
+        </div>
+        <div class="flex gap-2">
+          <label class="cursor-pointer bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-bold text-[11px] px-3 py-2 rounded-xl flex items-center gap-1.5">
+            <i class="ph-bold ph-camera"></i> Upload photo
+            <input type="file" accept="image/*" class="hidden" onchange="onPhotoSelected(event)">
+          </label>
+          <button id="pf-remove-photo" onclick="removePhoto()" class="hidden bg-slate-800 hover:bg-rose-900/40 border border-slate-700 text-rose-400 font-bold text-[11px] px-3 py-2 rounded-xl">Remove</button>
+        </div>
+        <p id="pf-photo-msg" class="text-[10px] text-center"></p>
+      </div>
+
+      <div>
+        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Email</label>
+        <input id="pf-email" type="email" placeholder="you@clsu2.edu.ph" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-slate-200 text-sm focus:outline-none focus:border-clsu-gold">
+      </div>
+      <div>
+        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Contact number</label>
+        <input id="pf-contact" type="tel" placeholder="09XX XXX XXXX" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-slate-200 text-sm focus:outline-none focus:border-clsu-gold">
+      </div>
+      <div class="grid grid-cols-2 gap-2">
+        <div><label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Emergency contact name</label>
+          <input id="pf-em-name" placeholder="Full name" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-slate-200 text-sm focus:outline-none focus:border-clsu-gold"></div>
+        <div><label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Emergency contact number</label>
+          <input id="pf-em-phone" type="tel" placeholder="09XX XXX XXXX" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-slate-200 text-sm focus:outline-none focus:border-clsu-gold"></div>
+      </div>
+
+      <p id="pf-msg" class="text-[11px] text-center"></p>
+      <button onclick="saveProfile(this)" class="w-full bg-clsu-green hover:bg-green-800 text-white font-bold py-3 rounded-xl text-xs">Save changes</button>
     </div>
   </div>
 </div>
@@ -469,6 +520,7 @@ window.onload = () => {
   const savedId = localStorage.getItem('cao_student_id');
   const savedToken = localStorage.getItem('cao_token');
   if (savedId && savedToken){ activeStudentId = savedId; sessionToken = savedToken; loadDashboard(); }
+  if ('serviceWorker' in navigator){ navigator.serviceWorker.register('./sw.js').catch(()=>{}); }
 };
 
 /* ── auth UI ── */
@@ -1052,6 +1104,111 @@ async function shareWrapped(){
   }, 'image/png');
 }
 
+/* ═══════════════════ EDIT PROFILE + PHOTO (Phase 12) ═══════════════════ */
+function openEditProfile(){
+  const prof = (dashData && dashData.profile) || {};
+  document.getElementById('pf-email').value = prof.email || '';
+  document.getElementById('pf-contact').value = prof.contact || '';
+  document.getElementById('pf-em-name').value = prof.emergencyName || '';
+  document.getElementById('pf-em-phone').value = prof.emergencyPhone || '';
+  document.getElementById('pf-msg').innerText = '';
+  document.getElementById('pf-photo-msg').innerText = '';
+  paintProfileAvatar(prof.photo);
+  const m = document.getElementById('profile-modal');
+  m.classList.remove('hidden'); m.classList.add('flex');
+}
+function closeEditProfile(){
+  const m = document.getElementById('profile-modal');
+  m.classList.add('hidden'); m.classList.remove('flex');
+}
+function paintProfileAvatar(photoUrl){
+  const img = document.getElementById('pf-avatar-img');
+  const initialsEl = document.getElementById('pf-avatar-initials');
+  const removeBtn = document.getElementById('pf-remove-photo');
+  if (photoUrl){
+    img.src = photoUrl; img.classList.remove('hidden'); initialsEl.classList.add('hidden');
+    removeBtn.classList.remove('hidden'); removeBtn.classList.add('flex');
+  } else {
+    img.classList.add('hidden'); initialsEl.classList.remove('hidden');
+    const parts = (dashData?.name||'').split(' ');
+    initialsEl.textContent = ((parts[0]?.[0]||'') + (parts[1]?.[0]||'')).toUpperCase() || 'ID';
+    removeBtn.classList.add('hidden'); removeBtn.classList.remove('flex');
+  }
+}
+
+/** Downscales + compresses a selected image client-side before upload. */
+function compressImage(file, maxDim, quality){
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const reader = new FileReader();
+    reader.onload = e => { img.src = e.target.result; };
+    img.onload = () => {
+      let { width, height } = img;
+      if (width > height && width > maxDim){ height *= maxDim/width; width = maxDim; }
+      else if (height > maxDim){ width *= maxDim/height; height = maxDim; }
+      const canvas = document.createElement('canvas');
+      canvas.width = width; canvas.height = height;
+      canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+      const dataUrl = canvas.toDataURL('image/jpeg', quality);
+      resolve(dataUrl);
+    };
+    img.onerror = reject;
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function onPhotoSelected(event){
+  const file = event.target.files[0];
+  if (!file) return;
+  const msg = document.getElementById('pf-photo-msg');
+  msg.innerHTML = '<span class="text-slate-400">Compressing & uploading…</span>';
+  try {
+    const dataUrl = await compressImage(file, 480, 0.8);
+    const base64 = dataUrl.split(',')[1];
+    const res = await fetch(WEB_APP_URL, { method:'POST',
+      body: JSON.stringify({ action:'uploadPhoto', id:activeStudentId, token:sessionToken, imageBase64: base64, mimeType:'image/jpeg' }) });
+    const r = await res.json();
+    if (r.success){
+      paintProfileAvatar(r.photo);
+      msg.innerHTML = '<span class="text-emerald-400">Photo updated!</span>';
+      if (dashData) dashData.profile = Object.assign({}, dashData.profile, { photo: r.photo });
+    } else msg.innerHTML = `<span class="text-rose-400">${r.message||'Upload failed.'}</span>`;
+  } catch(e){ msg.innerHTML = '<span class="text-rose-400">Couldn\'t process that image.</span>'; }
+  event.target.value = '';
+}
+
+async function removePhoto(){
+  const msg = document.getElementById('pf-photo-msg');
+  msg.innerHTML = '<span class="text-slate-400">Removing…</span>';
+  try {
+    const res = await fetch(WEB_APP_URL, { method:'POST',
+      body: JSON.stringify({ action:'uploadPhoto', id:activeStudentId, token:sessionToken, remove:true }) });
+    const r = await res.json();
+    if (r.success){ paintProfileAvatar(null); msg.innerText = ''; if (dashData) dashData.profile = Object.assign({}, dashData.profile, { photo: null }); }
+    else msg.innerHTML = `<span class="text-rose-400">${r.message||'Failed.'}</span>`;
+  } catch(e){ msg.innerHTML = '<span class="text-rose-400">Network error.</span>'; }
+}
+
+async function saveProfile(btn){
+  const msg = document.getElementById('pf-msg');
+  const payload = {
+    action:'updateProfile', id:activeStudentId, token:sessionToken,
+    email: document.getElementById('pf-email').value.trim(),
+    contact: document.getElementById('pf-contact').value.trim(),
+    emergencyName: document.getElementById('pf-em-name').value.trim(),
+    emergencyPhone: document.getElementById('pf-em-phone').value.trim()
+  };
+  btn.disabled = true; btn.innerHTML = '<i class="ph-bold ph-circle-notch animate-spin"></i> Saving…';
+  try {
+    const res = await fetch(WEB_APP_URL, { method:'POST', body: JSON.stringify(payload) });
+    const r = await res.json();
+    if (r.success){ msg.innerHTML = '<span class="text-emerald-400">Saved!</span>'; setTimeout(closeEditProfile, 1200); }
+    else msg.innerHTML = `<span class="text-rose-400">${r.message||'Could not save.'}</span>`;
+  } catch(e){ msg.innerHTML = '<span class="text-rose-400">Network error.</span>'; }
+  btn.disabled = false; btn.innerHTML = 'Save changes';
+}
+
 /* ═══════════════════ NOTIFICATION PREFS (Phase 8) ═══════════════════ */
 let notifyOptOut = false;
 function updateBellIcon(){
@@ -1089,7 +1246,7 @@ async function toggleNotifyPref(){
 }
 
 /* ═══════════════════ MEMBER ID CARD (Phase 5) ═══════════════════ */
-const ID_CARD_PUBLIC_URL = "https://aeche7.github.io/cao-student-id-card/"; // e.g. https://aeche7.github.io/cao-id-card/
+const ID_CARD_PUBLIC_URL = "PASTE_YOUR_ID_CARD_PAGE_URL_HERE"; // e.g. https://aeche7.github.io/cao-id-card/
 const ID_RARITY = {
   common:{ ring:'#b45309', label:'Common' }, rare:{ ring:'#94a3b8', label:'Rare' },
   epic:{ ring:'#FFC000', label:'Epic' }, legendary:{ ring:'#fde047', label:'Legendary' },
