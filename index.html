@@ -194,6 +194,17 @@ input[type=password]{ -webkit-text-security:disc; }
         <div class="space-y-3" id="tasks-container"></div>
       </div>
 
+      <!-- excuses -->
+      <div id="excuses-section">
+        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 px-1 flex items-center justify-between">
+          <span class="flex items-center gap-2"><i class="ph-bold ph-note-pencil text-sky-400"></i> Excuses</span>
+          <button onclick="openExcuseForm()" class="text-[10px] font-bold text-clsu-gold hover:text-amber-300 normal-case flex items-center gap-1">
+            <i class="ph-bold ph-plus-circle"></i> Request excuse
+          </button>
+        </h3>
+        <div class="space-y-2" id="excuses-container"></div>
+      </div>
+
       <!-- achievements / sticker collection -->
       <div>
         <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 px-1 flex items-center justify-between">
@@ -213,6 +224,48 @@ input[type=password]{ -webkit-text-security:disc; }
       </div>
     </div>
   </main>
+</div>
+
+<!-- excuse request modal -->
+<div id="excuse-modal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 hidden items-center justify-center p-4 overflow-y-auto">
+  <div class="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-sm shadow-2xl my-auto">
+    <div class="flex items-center justify-between px-5 py-3 border-b border-slate-800">
+      <h3 class="text-sm font-black text-white flex items-center gap-2"><i class="ph-bold ph-note-pencil text-sky-400"></i> Request an excuse</h3>
+      <button onclick="closeExcuseForm()" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 flex items-center justify-center"><i class="ph-bold ph-x"></i></button>
+    </div>
+    <div class="p-5 space-y-3">
+      <!-- mode switch -->
+      <div class="flex gap-2">
+        <button id="exm-event" onclick="setExcuseMode('event')" class="flex-1 py-2 rounded-xl text-[11px] font-bold bg-clsu-green text-white">A specific event</button>
+        <button id="exm-range" onclick="setExcuseMode('range')" class="flex-1 py-2 rounded-xl text-[11px] font-bold bg-slate-800 text-slate-400">A date range</button>
+      </div>
+
+      <div id="ex-event-wrap">
+        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Event</label>
+        <select id="ex-event" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-slate-200 text-xs focus:outline-none focus:border-clsu-gold"></select>
+      </div>
+
+      <div id="ex-range-wrap" class="hidden grid grid-cols-2 gap-2">
+        <div><label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">From</label>
+          <input id="ex-from" type="date" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-slate-200 text-xs focus:outline-none focus:border-clsu-gold"></div>
+        <div><label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">To</label>
+          <input id="ex-to" type="date" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-slate-200 text-xs focus:outline-none focus:border-clsu-gold"></div>
+      </div>
+
+      <div>
+        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Reason</label>
+        <select id="ex-reason" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-slate-200 text-xs focus:outline-none focus:border-clsu-gold"></select>
+      </div>
+      <div>
+        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Details (optional)</label>
+        <textarea id="ex-details" rows="2" placeholder="Anything your section lead should know" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-slate-200 text-xs focus:outline-none focus:border-clsu-gold resize-none"></textarea>
+      </div>
+
+      <p id="ex-msg" class="text-[11px] text-center"></p>
+      <button onclick="submitExcuse(this)" class="w-full bg-clsu-green hover:bg-green-800 text-white font-bold py-2.5 rounded-xl text-xs">Submit request</button>
+      <p class="text-[9px] text-slate-500 text-center">Your section lead reviews this. Approved excuses are recorded on your attendance record.</p>
+    </div>
+  </div>
 </div>
 
 <!-- member ID card modal -->
@@ -452,6 +505,7 @@ function renderDashboard(data){
 
   renderWeek(data.week || []);
   renderTasks(data.tasks || []);
+  renderExcuses(data.excuses || [], data.excuseOptions);
   renderBadges(data.achievements || []);
   renderSessions(data.sessions || []);
   document.getElementById('synced-at').innerText = data.syncedAt ? "synced " + data.syncedAt : "";
@@ -647,6 +701,86 @@ async function submitTask(taskId, btn){
     if (r.success){ loadDashboard(); } // refresh to show "waiting for approval"
     else { btn.disabled = false; btn.innerHTML = '<i class="ph-bold ph-warning"></i> ' + (r.message||'Try again'); }
   } catch(e){ btn.disabled = false; btn.innerHTML = '<i class="ph-bold ph-wifi-slash"></i> Network error'; }
+}
+
+/* ═══════════════════ EXCUSES (Phase 6) ═══════════════════ */
+let excuseMode = 'event';
+function renderExcuses(excuses, options){
+  // populate form dropdowns from the payload
+  if (options){
+    const evSel = document.getElementById('ex-event');
+    evSel.innerHTML = (options.events||[]).length
+      ? options.events.map(e=>`<option value="${e.id}">${e.label}</option>`).join('')
+      : '<option value="">No scheduled events</option>';
+    document.getElementById('ex-reason').innerHTML =
+      (options.reasons||[]).map(r=>`<option>${r}</option>`).join('');
+  }
+
+  const c = document.getElementById('excuses-container');
+  if (!excuses.length){
+    c.innerHTML = `<p class="text-[11px] text-slate-600 text-center py-4 bg-slate-900/50 border border-slate-800 rounded-2xl">No excuse requests yet.</p>`;
+    return;
+  }
+  const style = {
+    Approved:{ cls:'border-emerald-500/30 bg-emerald-500/10', ic:'ph-check-circle', tone:'text-emerald-400' },
+    Denied:  { cls:'border-rose-500/30 bg-rose-500/10',       ic:'ph-x-circle',     tone:'text-rose-400' },
+    Pending: { cls:'border-amber-500/30 bg-amber-500/10',     ic:'ph-hourglass-medium', tone:'text-amber-400' }
+  };
+  c.innerHTML = excuses.map(x=>{
+    const s = style[x.status] || style.Pending;
+    return `<div class="border ${s.cls} rounded-2xl p-3 flex items-center gap-3">
+      <i class="ph-fill ${s.ic} text-xl ${s.tone} shrink-0"></i>
+      <div class="flex-1 overflow-hidden">
+        <p class="text-xs font-bold text-slate-200">${x.reason} <span class="text-slate-500 font-normal">· ${x.when}</span></p>
+        ${x.details?`<p class="text-[10px] text-slate-400 truncate">${x.details}</p>`:''}
+      </div>
+      <span class="text-[9px] font-black uppercase ${s.tone} shrink-0">${x.status}</span>
+    </div>`;
+  }).join('');
+}
+
+function openExcuseForm(){
+  document.getElementById('ex-msg').innerText = '';
+  document.getElementById('ex-details').value = '';
+  const m = document.getElementById('excuse-modal');
+  m.classList.remove('hidden'); m.classList.add('flex');
+}
+function closeExcuseForm(){
+  const m = document.getElementById('excuse-modal');
+  m.classList.add('hidden'); m.classList.remove('flex');
+}
+function setExcuseMode(mode){
+  excuseMode = mode;
+  const isEvent = mode === 'event';
+  document.getElementById('ex-event-wrap').classList.toggle('hidden', !isEvent);
+  document.getElementById('ex-range-wrap').classList.toggle('hidden', isEvent);
+  document.getElementById('ex-range-wrap').classList.toggle('grid', !isEvent);
+  document.getElementById('exm-event').className = "flex-1 py-2 rounded-xl text-[11px] font-bold " + (isEvent?'bg-clsu-green text-white':'bg-slate-800 text-slate-400');
+  document.getElementById('exm-range').className = "flex-1 py-2 rounded-xl text-[11px] font-bold " + (!isEvent?'bg-clsu-green text-white':'bg-slate-800 text-slate-400');
+}
+async function submitExcuse(btn){
+  const msg = document.getElementById('ex-msg');
+  const payload = {
+    action:'submitExcuse', id:activeStudentId, token:sessionToken,
+    reason: document.getElementById('ex-reason').value,
+    details: document.getElementById('ex-details').value.trim()
+  };
+  if (excuseMode === 'event'){
+    payload.eventId = document.getElementById('ex-event').value;
+    if (!payload.eventId){ msg.innerHTML = '<span class="text-rose-400">No event to select — use a date range.</span>'; return; }
+  } else {
+    payload.from = document.getElementById('ex-from').value;
+    payload.to = document.getElementById('ex-to').value || payload.from;
+    if (!payload.from){ msg.innerHTML = '<span class="text-rose-400">Pick a start date.</span>'; return; }
+  }
+  btn.disabled = true; btn.innerHTML = '<i class="ph-bold ph-circle-notch animate-spin"></i> Submitting…';
+  try {
+    const res = await fetch(WEB_APP_URL, { method:'POST', body: JSON.stringify(payload) });
+    const r = await res.json();
+    if (r.success){ closeExcuseForm(); loadDashboard(); }
+    else msg.innerHTML = `<span class="text-rose-400">${r.message||'Failed.'}</span>`;
+  } catch(e){ msg.innerHTML = '<span class="text-rose-400">Network error.</span>'; }
+  btn.disabled = false; btn.innerHTML = 'Submit request';
 }
 
 /* ═══════════════════ MEMBER ID CARD (Phase 5) ═══════════════════ */
