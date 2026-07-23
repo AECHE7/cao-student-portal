@@ -96,7 +96,7 @@ input[type=password]{ -webkit-text-security:disc; }
         <p id="dash-group" class="text-xs text-clsu-gold font-semibold">—</p>
       </div>
     </div>
-    <div class="flex items-center gap-2">
+    <div class="flex items-center gap-2 flex-wrap justify-end">
       <button onclick="refreshDashboard()" id="btn-refresh" title="Refresh" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition border border-slate-700">
         <i id="refresh-icon" class="ph-bold ph-arrows-clockwise text-base text-emerald-400"></i>
       </button>
@@ -105,6 +105,9 @@ input[type=password]{ -webkit-text-security:disc; }
       </button>
       <button onclick="showMyId()" title="My member card" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition border border-slate-700 flex items-center gap-1.5 text-xs font-bold">
         <i class="ph-bold ph-identification-card text-base text-clsu-gold"></i><span class="hidden sm:inline">My ID</span>
+      </button>
+      <button onclick="openNotifyPrefs()" title="Notification preferences" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition border border-slate-700">
+        <i id="bell-icon" class="ph-bold ph-bell text-base text-clsu-gold"></i>
       </button>
       <button onclick="openChangePinModal()" title="Change PIN" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition border border-slate-700 flex items-center gap-1.5 text-xs font-bold">
         <i class="ph-bold ph-key text-base text-clsu-gold"></i><span class="hidden sm:inline">Change PIN</span>
@@ -278,6 +281,24 @@ input[type=password]{ -webkit-text-security:disc; }
       <button onclick="applyWrappedRange()" class="flex-1 bg-clsu-green text-white font-bold py-2.5 rounded-xl text-xs">Generate</button>
       <button onclick="document.getElementById('wr-range-modal').classList.add('hidden')" class="flex-1 bg-slate-800 text-slate-300 font-bold py-2.5 rounded-xl text-xs">Cancel</button>
     </div>
+  </div>
+</div>
+
+<!-- notification preferences modal -->
+<div id="notify-modal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 hidden items-center justify-center p-4">
+  <div class="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-xs p-5 space-y-4 shadow-2xl">
+    <div class="flex items-center justify-between">
+      <h3 class="text-sm font-black text-white flex items-center gap-2"><i class="ph-bold ph-bell text-clsu-gold"></i> Notifications</h3>
+      <button onclick="closeNotifyPrefs()" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 flex items-center justify-center"><i class="ph-bold ph-x"></i></button>
+    </div>
+    <p class="text-[11px] text-slate-400">Get an email when a badge unlocks, a task or excuse is reviewed, or CAO sends an announcement.</p>
+    <button id="notify-toggle" onclick="toggleNotifyPref()" class="w-full flex items-center justify-between bg-slate-950 border border-slate-700 rounded-2xl px-4 py-3">
+      <span class="text-xs font-bold text-slate-200">Email notifications</span>
+      <span id="notify-pill" class="w-11 h-6 rounded-full bg-clsu-green relative transition-colors">
+        <span id="notify-knob" class="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform"></span>
+      </span>
+    </button>
+    <p id="notify-msg" class="text-[11px] text-center"></p>
   </div>
 </div>
 
@@ -562,6 +583,8 @@ function renderDashboard(data){
   renderTasks(data.tasks || []);
   renderExcuses(data.excuses || [], data.excuseOptions);
   renderBadges(data.achievements || []);
+  notifyOptOut = !!data.notifyOptOut;
+  updateBellIcon();
   renderSessions(data.sessions || []);
   document.getElementById('synced-at').innerText = data.syncedAt ? "synced " + data.syncedAt : "";
 
@@ -1027,6 +1050,42 @@ async function shareWrapped(){
     a.href = URL.createObjectURL(blob); a.download = 'CAO_Wrapped.png'; a.click();
     URL.revokeObjectURL(a.href);
   }, 'image/png');
+}
+
+/* ═══════════════════ NOTIFICATION PREFS (Phase 8) ═══════════════════ */
+let notifyOptOut = false;
+function updateBellIcon(){
+  const icon = document.getElementById('bell-icon');
+  if (!icon) return;
+  icon.className = "ph-bold " + (notifyOptOut ? "ph-bell-slash text-slate-500" : "ph-bell text-clsu-gold") + " text-base";
+}
+function openNotifyPrefs(){
+  document.getElementById('notify-msg').innerText = '';
+  paintNotifyToggle();
+  const m = document.getElementById('notify-modal');
+  m.classList.remove('hidden'); m.classList.add('flex');
+}
+function closeNotifyPrefs(){
+  const m = document.getElementById('notify-modal');
+  m.classList.add('hidden'); m.classList.remove('flex');
+}
+function paintNotifyToggle(){
+  const pill = document.getElementById('notify-pill');
+  const knob = document.getElementById('notify-knob');
+  const on = !notifyOptOut; // pill ON = notifications enabled
+  pill.style.background = on ? '#006633' : '#334155';
+  knob.style.transform = on ? 'translateX(20px)' : 'translateX(0)';
+}
+async function toggleNotifyPref(){
+  const newOptOut = !notifyOptOut;
+  const msg = document.getElementById('notify-msg');
+  try {
+    const res = await fetch(WEB_APP_URL, { method:'POST',
+      body: JSON.stringify({ action:'setNotifyPref', id:activeStudentId, token:sessionToken, optOut:newOptOut }) });
+    const r = await res.json();
+    if (r.success){ notifyOptOut = newOptOut; paintNotifyToggle(); updateBellIcon(); msg.innerHTML = `<span class="text-emerald-400">${r.message}</span>`; }
+    else msg.innerHTML = `<span class="text-rose-400">${r.message||'Failed to update.'}</span>`;
+  } catch(e){ msg.innerHTML = '<span class="text-rose-400">Network error.</span>'; }
 }
 
 /* ═══════════════════ MEMBER ID CARD (Phase 5) ═══════════════════ */
